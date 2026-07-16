@@ -32,8 +32,6 @@ const DEFAULT_CONFIG: SystemConfig = {
 };
 
 // Month labels for chart
-const MONTHS = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const CHART_VALS = [45, 70, 55, 85, 60, 95];
 
 export default function HomePage() {
   const { user, appUser, isAdmin, loading: authLoading } = useAuth();
@@ -198,39 +196,50 @@ export default function HomePage() {
         )}
 
         {/* Revenue Chart (admin only) */}
-        {isAdmin && (
+        {isAdmin && stats && (
           <>
             <div className="flex items-center justify-between px-5 mt-5 mb-3">
               <h3 className="section-title">
                 Monthly <span>Revenue</span>
               </h3>
             </div>
-            <div className="mx-5 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5 relative overflow-hidden h-44">
-              <p className="text-xs text-[var(--text-muted)] font-semibold mb-3">
+            <div className="mx-5 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5 overflow-hidden">
+              <p className="text-xs text-[var(--text-muted)] font-semibold mb-4">
                 Revenue (USD) — Last 6 Months
               </p>
-              <div className="absolute bottom-4 left-5 right-5 flex items-end gap-2 h-28">
-                {CHART_VALS.map((val, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div
-                      className="chart-bar-item w-full"
-                      style={{
-                        height: `${val}%`,
-                        background:
-                          i === CHART_VALS.length - 1
-                            ? "var(--gradient-brand)"
-                            : i % 3 === 1
-                            ? "var(--gradient-gold)"
-                            : "var(--gradient-green)",
-                      }}
-                      title={`${MONTHS[i]}: $${Math.round(val * 200)}`}
-                    />
-                    <span className="text-[9px] text-[var(--text-muted)]">
-                      {MONTHS[i]}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              {stats.monthlyBreakdown.every((m) => m.revenue === 0) ? (
+                <div className="h-24 flex flex-col items-center justify-center gap-1 text-center">
+                  <p className="text-2xl">📊</p>
+                  <p className="text-xs text-[var(--text-muted)]">No verified payments yet — this fills in as orders get paid.</p>
+                </div>
+              ) : (
+                <div className="flex items-end gap-2 h-28">
+                  {(() => {
+                    const max = Math.max(...stats.monthlyBreakdown.map((m) => m.revenue), 1);
+                    return stats.monthlyBreakdown.map((m, i) => {
+                      const heightPx = Math.max((m.revenue / max) * 96, m.revenue > 0 ? 6 : 2);
+                      return (
+                        <div key={m.month} className="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+                          <div
+                            className="chart-bar-item w-full"
+                            style={{
+                              height: `${heightPx}px`,
+                              background:
+                                i === stats.monthlyBreakdown.length - 1
+                                  ? "var(--gradient-brand)"
+                                  : i % 3 === 1
+                                  ? "var(--gradient-gold)"
+                                  : "var(--gradient-green)",
+                            }}
+                            title={`${m.month}: $${m.revenue.toLocaleString()}`}
+                          />
+                          <span className="text-[9px] text-[var(--text-muted)]">{m.month}</span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
             </div>
           </>
         )}

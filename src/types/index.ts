@@ -207,4 +207,5 @@ export interface DashboardStats {
   totalClients: number;
   openTickets: number;
   pendingPayments: number;
+  monthlyBreakdown: { month: string; revenue: number }[];
 }

@@ -423,13 +423,13 @@ body {
    CHART
 ============================================================ */
 .chart-bar-item {
-  flex: 1;
   border-radius: 4px 4px 0 0;
   background: var(--gradient-brand);
   opacity: 0.7;
   transition: opacity 0.2s, transform 0.2s;
   cursor: pointer;
   min-height: 4px;
+  flex-shrink: 0;
 }
 .chart-bar-item:hover {
   opacity: 1;

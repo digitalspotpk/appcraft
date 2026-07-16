@@ -474,6 +474,22 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .filter((p) => p.status === "verified" && new Date(p.submittedAt) >= monthStart)
       .reduce((acc, p) => acc + (p.amount ?? 0), 0);
 
+    // Real last-6-months revenue breakdown (replaces old hardcoded demo values)
+    const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthlyBreakdown: { month: string; revenue: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const revenue = paymentList
+        .filter((p) => {
+          if (p.status !== "verified") return false;
+          const t = new Date(p.submittedAt);
+          return t >= d && t < monthEnd;
+        })
+        .reduce((acc, p) => acc + (p.amount ?? 0), 0);
+      monthlyBreakdown.push({ month: monthLabels[d.getMonth()], revenue });
+    }
+
     return {
       totalOrders: orderList.length,
       activeOrders: orderList.filter((o) => !["completed", "cancelled"].includes(o.status)).length,
@@ -484,6 +500,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       totalClients: users.size,
       openTickets: tickets.size,
       pendingPayments: paymentList.filter((p) => p.status === "pending").length,
+      monthlyBreakdown,
     };
   } catch {
     return {
@@ -496,6 +513,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       totalClients: 0,
       openTickets: 0,
       pendingPayments: 0,
+      monthlyBreakdown: [],
     };
   }
 }
