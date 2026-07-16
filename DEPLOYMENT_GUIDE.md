@@ -58,14 +58,17 @@ git --version
 3. Choose your region (e.g., `us-central1` or closest to your users)
 4. Click **Enable**
 
-### 2.4 Enable Firebase Storage
+### 2.4 ~~Enable Firebase Storage~~ — Not needed anymore ✅
 
-1. Firebase Console → **Storage** → **Get started**
-2. Select **"Start in production mode"**
-3. Choose same region as Firestore
-4. Click **Done**
+This app **no longer uses Firebase Storage**, because Google now requires
+the paid **Blaze** billing plan to use Cloud Storage buckets, even for
+free-tier usage. To keep this project 100% free on the **Spark** (free)
+plan, receipt images are compressed in the browser and saved as base64
+text directly inside Firestore documents instead. You can skip this step
+entirely — nothing to enable in the Storage tab.
 
 ### 2.5 Get Firebase Web Config
+
 
 1. Firebase Console → ⚙️ **Project Settings** → **Your apps**
 2. Click **"Add app"** → Select **Web (</>)**
@@ -106,7 +109,12 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## 4. Environment Variables
 
-Create `.env.local` in the project root:
+✅ **Already done for you** — a `.env.local` file with your real project
+values (client config + admin service account) is already sitting in the
+project root. You don't need to create or re-type anything. It's listed in
+`.gitignore`, so it will never be committed to Git.
+
+For reference, here's what it contains:
 
 ```env
 # ================================================================
@@ -291,40 +299,22 @@ service cloud.firestore {
 
 ### Storage Rules
 
-Firebase Console → **Storage** → **Rules**:
-
-```javascript
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-
-    // Receipts — client uploads to their own folder, admin reads all
-    match /receipts/{paymentId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.size < 10 * 1024 * 1024  // 10MB max
-        && request.resource.contentType.matches('image/.*|application/pdf');
-    }
-
-    // Order attachments
-    match /attachments/{orderId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.size < 10 * 1024 * 1024;
-    }
-
-    // Portfolio thumbnails — public read
-    match /portfolio/{projectId}/{fileName} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-  }
-}
-```
+Not applicable — this app no longer uses Firebase Storage (see §2.4).
+Receipts are saved as base64 fields inside Firestore `payments` documents,
+so they're already covered by the Firestore rules above.
 
 ---
 
-## 7. Firebase Hosting Deployment
+## 7. Hosting Deployment
+
+⚠️ **Update:** Firebase Hosting's full SSR support for Next.js also runs
+through Cloud Functions/Cloud Run, which **also requires the Blaze plan**.
+Since the goal is a fully free deployment, use the dedicated
+**[TERMUX_DEPLOY_GUIDE.md](./TERMUX_DEPLOY_GUIDE.md)** instead — it deploys
+this app to **Vercel** (free Hobby tier, native Next.js support, no card
+needed) straight from Termux. Firebase itself stays free for Auth +
+Firestore only. The steps below are kept for reference if you ever move to
+Firebase Hosting on a paid plan.
 
 ### 7.1 Initialize Firebase (CRITICAL: Prevent file overwrite)
 

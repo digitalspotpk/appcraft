@@ -67,13 +67,13 @@ export default function PortfolioPage() {
 
         {/* Grid */}
         {loading ? (
-          <div className="grid grid-cols-2 gap-3 px-5 mt-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-5 mt-3">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="skeleton h-48 rounded-2xl" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 px-5 mt-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-5 mt-3">
             {filtered.map((project, i) => (
               <button
                 key={project.id}

@@ -187,7 +187,7 @@ export default function AdminPage() {
             {/* DASHBOARD TAB */}
             {tab === "dashboard" && stats && (
               <div className="px-5 animate-fade-in">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {[
                     { icon: "📦", label: "Total Orders", value: stats.totalOrders.toString(), sub: `${stats.activeOrders} active` },
                     { icon: "💰", label: "Total Revenue", value: `$${(stats.totalRevenue / 1000).toFixed(1)}k`, sub: "Verified payments" },
@@ -422,7 +422,7 @@ export default function AdminPage() {
 
                 {/* Toggles */}
                 {[
-                  { key: "maintenanceMode", label: "🔧 Maintenance Mode", desc: "Show upgrade screen to clients" },
+                  { key: "maintenanceMode", label: "🔧 Maintenance Mode", desc: "Show maintenance screen to clients" },
                   { key: "alertBannerActive", label: "📢 Alert Banner", desc: "Show home page alert" },
                   { key: "pushNotificationsEnabled", label: "🔔 Push Notifications", desc: "Global notification system" },
                 ].map(({ key, label, desc }) => (

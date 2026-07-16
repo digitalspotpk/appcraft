@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
+import LandingPage from "@/components/LandingPage";
 import TopHeader from "@/components/TopHeader";
 import AlertBanner from "@/components/AlertBanner";
 import StatCard from "@/components/StatCard";
@@ -35,7 +36,7 @@ const MONTHS = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const CHART_VALS = [45, 70, 55, 85, 60, 95];
 
 export default function HomePage() {
-  const { user, appUser, isAdmin } = useAuth();
+  const { user, appUser, isAdmin, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [config, setConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
@@ -69,6 +70,22 @@ export default function HomePage() {
 
   const displayName = appUser?.displayName ?? user?.displayName ?? "User";
   const firstName = displayName.split(" ")[0];
+
+  // Logged-out visitors get the public marketing landing page instead of
+  // being bounced straight to /login.
+  if (!authLoading && !user) {
+    return <LandingPage />;
+  }
+
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background: "var(--bg-base)" }}>
+        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center text-2xl animate-pulse">
+          ⚡
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AppLayout>
@@ -109,13 +126,13 @@ export default function HomePage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-3 px-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="skeleton h-28 rounded-2xl" />
             ))}
           </div>
         ) : isAdmin && stats ? (
-          <div className="grid grid-cols-2 gap-3 px-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5">
             <StatCard
               icon="📦"
               label="Total Orders"
@@ -146,7 +163,7 @@ export default function HomePage() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 px-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5">
             <StatCard
               icon="📦"
               label="My Orders"

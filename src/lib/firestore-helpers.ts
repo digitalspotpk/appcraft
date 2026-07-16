@@ -14,8 +14,7 @@ import {
   Timestamp,
   QueryConstraint,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import type {
   Order,
   Payment,
@@ -229,10 +228,63 @@ export async function verifyPayment(id: string, approved: boolean, adminNote?: s
   });
 }
 
-export async function uploadReceipt(file: File, paymentId: string): Promise<string> {
-  const storageRef = ref(storage, `receipts/${paymentId}/${file.name}`);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+// Free alternative to Firebase Storage (which requires the paid Blaze
+// plan). We compress the receipt image in the browser and save it as a
+// base64 data URL directly on the payment document in Firestore — this
+// works entirely on Firebase's free Spark plan with no billing upgrade.
+// Firestore documents have a 1MB limit, so images are resized/compressed
+// to comfortably fit (typically 50-250KB).
+function compressImage(file: File, maxDimension = 1000, quality = 0.7): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas not supported"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = reader.result as string;
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function uploadReceipt(file: File): Promise<string> {
+  // PDFs and other non-image files can't be canvas-compressed — store
+  // them as-is (base64) if small enough, otherwise reject with a clear
+  // message so the UI can show a helpful error.
+  if (!file.type.startsWith("image/")) {
+    if (file.size > 700_000) {
+      throw new Error("File too large. Please upload an image or a file under 700KB.");
+    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  }
+  return compressImage(file);
 }
 
 // ============================================================

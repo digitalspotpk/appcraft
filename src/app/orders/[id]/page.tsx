@@ -90,10 +90,9 @@ export default function OrderDetailPage() {
     }
     setSubmittingPayment(true);
     try {
-      const paymentId = crypto.randomUUID();
       let receiptUrl: string | undefined;
       if (receiptFile) {
-        receiptUrl = await uploadReceipt(receiptFile, paymentId);
+        receiptUrl = await uploadReceipt(receiptFile);
       }
       const method = PAYMENT_METHODS.find((m) => m.id === selectedMethod);
       await submitPayment({
@@ -115,8 +114,9 @@ export default function OrderDetailPage() {
       setTxnId("");
       setAmount("");
       setReceiptFile(null);
-    } catch {
-      toast.error("Failed to submit payment");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to submit payment";
+      toast.error(msg);
     } finally {
       setSubmittingPayment(false);
     }
