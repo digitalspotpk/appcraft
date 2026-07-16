@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
+import { Home, Palette, Package, Bell, User } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/", icon: "🏠", label: "Home" },
-  { href: "/portfolio", icon: "🎨", label: "Portfolio" },
-  { href: "/orders", icon: "📦", label: "Track" },
-  { href: "/notifications", icon: "🔔", label: "Alerts" },
-  { href: "/profile", icon: "👤", label: "Profile" },
+  { href: "/", icon: Home, label: "Home" },
+  { href: "/portfolio", icon: Palette, label: "Portfolio" },
+  { href: "/orders", icon: Package, label: "Track" },
+  { href: "/notifications", icon: Bell, label: "Alerts" },
+  { href: "/profile", icon: User, label: "Profile" },
 ];
 
 interface BottomNavProps {
@@ -27,13 +28,14 @@ export default function BottomNav({ unreadCount = 0 }: BottomNavProps) {
             item.href === "/"
               ? pathname === "/"
               : pathname.startsWith(item.href);
+          const Icon = item.icon;
 
           return (
             <Link
               key={item.href}
               href={item.href}
               className={clsx(
-                "flex flex-col items-center gap-0.5 py-2 px-1 transition-all duration-200 relative",
+                "flex flex-col items-center gap-1 py-2.5 px-1 transition-all duration-200 relative",
                 isActive ? "text-violet-500" : "text-[var(--text-muted)]"
               )}
             >
@@ -42,16 +44,21 @@ export default function BottomNav({ unreadCount = 0 }: BottomNavProps) {
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-b bg-gradient-to-r from-violet-500 to-cyan-400" />
               )}
 
-              {/* Notification badge */}
+              {/* Icon + notification badge */}
               <span
                 className={clsx(
-                  "text-xl relative transition-transform duration-200",
+                  "relative flex items-center justify-center transition-transform duration-200",
                   isActive && "scale-110"
                 )}
               >
-                {item.icon}
+                <Icon
+                  size={22}
+                  strokeWidth={isActive ? 2.4 : 2}
+                  fill={isActive && (item.label === "Home" || item.label === "Profile") ? "currentColor" : "none"}
+                  className={isActive ? "opacity-100" : "opacity-80"}
+                />
                 {item.label === "Alerts" && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-[var(--nav-bg)]">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}

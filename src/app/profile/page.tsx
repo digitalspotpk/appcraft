@@ -57,7 +57,7 @@ export default function ProfilePage() {
             <div className="absolute top-4 left-4 w-20 h-20 rounded-full border-2 border-white" />
             <div className="absolute bottom-4 right-8 w-14 h-14 rounded-full border-2 border-white" />
           </div>
-          <div className="w-20 h-20 rounded-full bg-white/20 border-3 border-white/50 mx-auto flex items-center justify-center text-3xl font-bold text-white relative mb-3">
+          <div className="w-20 h-20 rounded-full bg-white/20 border-[3px] border-white/50 mx-auto flex items-center justify-center text-3xl font-bold text-white relative mb-3">
             {user?.photoURL ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

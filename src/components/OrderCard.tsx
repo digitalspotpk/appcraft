@@ -33,7 +33,7 @@ export default function OrderCard({ order, showClient = false }: OrderCardProps)
 
   return (
     <Link href={`/orders/${order.id}`} className="block">
-      <div className="order-card group bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4.5 relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:border-violet-500/30 cursor-pointer">
+      <div className="order-card group bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-[18px] relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:border-violet-500/30 cursor-pointer">
         {/* Left status bar */}
         <span
           className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${cfg.left} rounded-l-2xl`}

@@ -7,7 +7,7 @@ import BottomNav from "./BottomNav";
 import WhatsAppFAB from "./WhatsAppFAB";
 import SplashScreen from "./SplashScreen";
 import MaintenanceScreen from "./MaintenanceScreen";
-import { getSystemConfig } from "@/lib/firestore-helpers";
+import { getSystemConfig, getNotifications } from "@/lib/firestore-helpers";
 import type { SystemConfig } from "@/types";
 
 const DEFAULT_CONFIG: SystemConfig = {
@@ -35,6 +35,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(true);
   const [config, setConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Public routes that don't require auth
   const publicRoutes = ["/login", "/signup"];
@@ -53,6 +54,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     getSystemConfig().then(setConfig).catch(() => {});
   }, []);
+
+  // Real unread notification count (drives the bottom nav badge)
+  useEffect(() => {
+    if (!user) return;
+    getNotifications(user.uid)
+      .then((notifs) => setUnreadCount(notifs.filter((n) => !n.isRead).length))
+      .catch(() => {});
+  }, [user, pathname]);
 
   // Splash screen only on first visit
   useEffect(() => {
@@ -90,7 +99,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Bottom Nav — only for authenticated, non-public routes */}
       {user && !isPublic && (
         <>
-          <BottomNav />
+          <BottomNav unreadCount={unreadCount} />
           <WhatsAppFAB number={config.whatsappNumber} />
         </>
       )}

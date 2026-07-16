@@ -42,7 +42,7 @@ export default function StatCard({
 
   return (
     <div
-      className={`bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4.5 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-glow)] hover:border-violet-500/30 cursor-default
+      className={`bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-[18px] relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-glow)] hover:border-violet-500/30 cursor-default
         after:content-[''] after:absolute after:top-[-20px] after:right-[-20px] after:w-20 after:h-20 after:rounded-full after:opacity-10 ${styles.glow}`}
     >
       <p className="text-3xl mb-2">{icon}</p>
