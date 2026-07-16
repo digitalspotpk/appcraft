@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AppCraft by DigitalSpot — Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       DESIGN TOKENS & THEME SYSTEM
+    ============================================================ */
+    :root {
+      --accent-1: #7c3aed;
+      --accent-2: #06b6d4;
+      --accent-3: #f59e0b;
+      --accent-danger: #ef4444;
+      --accent-success: #10b981;
+      --gradient-brand: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+      --gradient-gold: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+      --gradient-green: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 6px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    [data-theme="dark"] {
+      --bg-base: #0a0a0f;
+      --bg-surface: #111118;
+      --bg-card: #1a1a27;
+      --bg-card-hover: #222235;
+      --bg-input: #16161f;
+      --border: #2a2a40;
+      --border-accent: #7c3aed44;
+      --text-primary: #f0f0ff;
+      --text-secondary: #9090b0;
+      --text-muted: #5a5a7a;
+      --nav-bg: rgba(17,17,24,0.95);
+      --glass: rgba(122,58,237,0.08);
+      --shadow: 0 8px 32px rgba(0,0,0,0.6);
+      --shadow-glow: 0 0 40px rgba(124,58,237,0.25);
+    }
+
+    [data-theme="light"] {
+      --bg-base: #f0f0ff;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f5f5ff;
+      --bg-input: #f8f8ff;
+      --border: #e0e0f0;
+      --border-accent: #7c3aed33;
+      --text-primary: #1a1a2e;
+      --text-secondary: #4a4a6a;
+      --text-muted: #8080a0;
+      --nav-bg: rgba(255,255,255,0.95);
+      --glass: rgba(124,58,237,0.05);
+      --shadow: 0 8px 32px rgba(0,0,0,0.1);
+      --shadow-glow: 0 0 40px rgba(124,58,237,0.15);
+    }
+
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+
+    /* ============================================================
+       SPLASH SCREEN
+    ============================================================ */
+    #splash {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--bg-base);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 24px;
+      animation: splashFadeOut 0.6s ease 3s forwards;
+    }
+
+    .splash-logo-ring {
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: var(--gradient-brand);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      animation: splashPulse 1.5s ease-in-out infinite;
+      box-shadow: 0 0 60px rgba(124,58,237,0.5);
+    }
+    .splash-logo-ring::before {
+      content: '';
+      position: absolute; inset: -8px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: #06b6d4;
+      animation: splashSpin 1s linear infinite;
+    }
+    .splash-logo-icon { font-size: 48px; }
+
+    .splash-brand {
+      text-align: center;
+      animation: splashSlideUp 0.8s ease 0.3s both;
+    }
+    .splash-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(24px, 6vw, 36px);
+      font-weight: 900;
+      background: var(--gradient-brand);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
+    }
+    .splash-sub {
+      font-size: 14px;
+      color: var(--text-secondary);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    .splash-bars {
+      display: flex; gap: 6px;
+      animation: splashSlideUp 0.8s ease 0.6s both;
+    }
+    .splash-bar {
+      width: 6px; height: 40px;
+      border-radius: 4px;
+      background: var(--gradient-brand);
+      animation: splashBarBounce 1s ease-in-out infinite;
+    }
+    .splash-bar:nth-child(2) { animation-delay: 0.1s; }
+    .splash-bar:nth-child(3) { animation-delay: 0.2s; }
+    .splash-bar:nth-child(4) { animation-delay: 0.3s; }
+    .splash-bar:nth-child(5) { animation-delay: 0.4s; }
+
+    @keyframes splashFadeOut { to { opacity:0; pointer-events:none; visibility:hidden; } }
+    @keyframes splashPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+    @keyframes splashSpin { to{transform:rotate(360deg)} }
+    @keyframes splashSlideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+    @keyframes splashBarBounce { 0%,100%{height:20px} 50%{height:40px} }
+
+    /* ============================================================
+       LAYOUT
+    ============================================================ */
+    .app-container { max-width: 480px; margin: 0 auto; position: relative; }
+    .screen { display:none; padding-bottom: 90px; min-height: 100vh; }
+    .screen.active { display:block; }
+
+    /* ============================================================
+       TOP HEADER
+    ============================================================ */
+    .top-header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--nav-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: var(--transition);
+    }
+    .header-brand {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px; font-weight: 900;
+      background: var(--gradient-brand);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header-actions { display:flex; align-items:center; gap:10px; }
+    .icon-btn {
+      width: 38px; height: 38px; border-radius: var(--radius-xs);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      display: flex; align-items:center; justify-content:center;
+      font-size: 18px;
+      transition: var(--transition);
+      color: var(--text-primary);
+    }
+    .icon-btn:hover { background: var(--glass); border-color: var(--accent-1); transform: scale(1.05); }
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: var(--gradient-brand);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:14px; color:#fff; cursor:pointer;
+      border: 2px solid var(--accent-1);
+    }
+
+    /* ============================================================
+       ALERT BANNER
+    ============================================================ */
+    .alert-banner {
+      margin: 16px 20px 0;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.2));
+      border: 1px solid var(--border-accent);
+      display: flex; align-items:center; gap:12px;
+      position: relative; overflow:hidden;
+      animation: bannerSlideIn 0.5s ease both;
+    }
+    .alert-banner::before {
+      content:'';
+      position:absolute; left:0; top:0; bottom:0;
+      width:4px;
+      background: var(--gradient-brand);
+      border-radius: 4px 0 0 4px;
+    }
+    .alert-icon { font-size:20px; flex-shrink:0; }
+    .alert-text { flex:1; font-size:13px; color:var(--text-secondary); }
+    .alert-text strong { color:var(--text-primary); display:block; margin-bottom:2px; }
+    .alert-close {
+      background:none; border:none; color:var(--text-muted);
+      cursor:pointer; font-size:18px; line-height:1; padding:2px;
+      transition:var(--transition);
+    }
+    .alert-close:hover { color:var(--accent-danger); transform:scale(1.2); }
+    @keyframes bannerSlideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:none} }
+
+    /* ============================================================
+       SECTION HEADINGS
+    ============================================================ */
+    .section-header {
+      padding: 20px 20px 10px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .section-title {
+      font-size:18px; font-weight:700; color:var(--text-primary);
+    }
+    .section-title span {
+      background: var(--gradient-brand);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .see-all {
+      font-size:12px; color:var(--accent-2); font-weight:600;
+      background:none; border:none; cursor:pointer;
+      text-transform:uppercase; letter-spacing:1px;
+    }
+
+    /* ============================================================
+       STATS ROW
+    ============================================================ */
+    .stats-scroll {
+      padding: 0 20px;
+      display:grid; grid-template-columns: repeat(2,1fr);
+      gap: 12px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      position:relative; overflow:hidden;
+      transition:var(--transition);
+      cursor:default;
+    }
+    .stat-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-glow); border-color:var(--accent-1); }
+    .stat-card::after {
+      content:'';
+      position:absolute; top:-20px; right:-20px;
+      width:80px; height:80px;
+      border-radius:50%;
+      background: var(--gradient-brand);
+      opacity:0.08;
+    }
+    .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-muted); font-weight:600; }
+    .stat-value { font-size:26px; font-weight:800; color:var(--text-primary); margin:6px 0 4px; }
+    .stat-change { font-size:12px; color:var(--accent-success); font-weight:600; }
+    .stat-icon { font-size:28px; margin-bottom:8px; }
+    .stat-card.gold::after { background: var(--gradient-gold); }
+    .stat-card.green::after { background: var(--gradient-green); }
+    .stat-card.cyan { }
+    .stat-card.gold .stat-value { background: var(--gradient-gold); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .stat-card.green .stat-value { background: var(--gradient-green); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+    /* ============================================================
+       ORDER CARDS
+    ============================================================ */
+    .cards-list { padding: 0 20px; display:flex; flex-direction:column; gap:14px; }
+
+    .order-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      transition:var(--transition);
+      cursor:pointer;
+      position:relative; overflow:hidden;
+    }
+    .order-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); border-color:var(--border-accent); }
+    .order-card::before {
+      content:'';
+      position:absolute; left:0; top:0; bottom:0;
+      width:4px;
+    }
+    .order-card.status-dev::before { background: var(--gradient-brand); }
+    .order-card.status-review::before { background: var(--gradient-gold); }
+    .order-card.status-done::before { background: var(--gradient-green); }
+    .order-card.status-pending::before { background:linear-gradient(135deg,#6b7280,#9ca3af); }
+
+    .order-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+    .order-id { font-size:11px; color:var(--text-muted); font-weight:600; letter-spacing:1px; text-transform:uppercase; }
+    .order-name { font-size:15px; font-weight:700; color:var(--text-primary); margin-top:3px; }
+    .badge {
+      padding: 4px 10px; border-radius:20px;
+      font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+      flex-shrink:0;
+    }
+    .badge-dev { background:rgba(124,58,237,0.2); color:#a78bfa; border:1px solid rgba(124,58,237,0.3); }
+    .badge-review { background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); }
+    .badge-done { background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.3); }
+    .badge-pending { background:rgba(107,114,128,0.2); color:#9ca3af; border:1px solid rgba(107,114,128,0.3); }
+
+    .order-progress { margin-bottom:12px; }
+    .progress-label { display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:6px; }
+    .progress-bar {
+      height: 6px; border-radius:3px;
+      background: var(--bg-input);
+      overflow:hidden;
+    }
+    .progress-fill {
+      height:100%; border-radius:3px;
+      background: var(--gradient-brand);
+      transition: width 1s ease;
+      position:relative;
+    }
+    .progress-fill::after {
+      content:'';
+      position:absolute; right:0; top:50%;
+      transform:translateY(-50%);
+      width:10px; height:10px; border-radius:50%;
+      background:#fff;
+      box-shadow: 0 0 8px rgba(124,58,237,0.8);
+    }
+
+    .order-meta { display:flex; gap:16px; }
+    .order-meta-item { display:flex; align-items:center; gap:5px; font-size:12px; color:var(--text-muted); }
+    .order-meta-item strong { color:var(--text-secondary); }
+
+    /* ============================================================
+       STEPPER
+    ============================================================ */
+    .stepper-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 0 20px 16px;
+    }
+    .stepper-title { font-size:14px; font-weight:700; color:var(--text-primary); margin-bottom:20px; }
+
+    .stepper { display:flex; justify-content:space-between; position:relative; }
+    .stepper::before {
+      content:'';
+      position:absolute; top:20px; left:0; right:0;
+      height:2px; background: var(--border);
+      z-index:0;
+    }
+    .step { display:flex; flex-direction:column; align-items:center; gap:8px; z-index:1; flex:1; }
+    .step-dot {
+      width:40px; height:40px; border-radius:50%;
+      background: var(--bg-input);
+      border: 2px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      font-size:16px;
+      transition:var(--transition);
+      position:relative;
+    }
+    .step.done .step-dot {
+      background: var(--gradient-brand);
+      border-color: transparent;
+      box-shadow: 0 0 20px rgba(124,58,237,0.4);
+    }
+    .step.active .step-dot {
+      background: var(--gradient-brand);
+      border-color: transparent;
+      box-shadow: 0 0 20px rgba(124,58,237,0.6);
+      animation: stepPulse 2s ease-in-out infinite;
+    }
+    .step-dot .check { display:none; }
+    .step.done .step-dot .icon { display:none; }
+    .step.done .step-dot .check { display:block; color:#fff; font-size:18px; }
+    .step-label { font-size:10px; text-align:center; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; line-height:1.3; }
+    .step.done .step-label, .step.active .step-label { color:var(--accent-1); }
+    @keyframes stepPulse { 0%,100%{box-shadow:0 0 20px rgba(124,58,237,0.6)} 50%{box-shadow:0 0 35px rgba(124,58,237,0.9)} }
+
+    /* ============================================================
+       PORTFOLIO GRID
+    ============================================================ */
+    .portfolio-grid {
+      padding: 0 20px;
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .portfolio-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow:hidden;
+      cursor:pointer;
+      transition:var(--transition);
+      position:relative;
+    }
+    .portfolio-card:hover { transform:scale(1.02); box-shadow:var(--shadow-glow); }
+    .portfolio-thumb {
+      height: 120px;
+      background: var(--gradient-brand);
+      position:relative; overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .portfolio-thumb.t2 { background: var(--gradient-gold); }
+    .portfolio-thumb.t3 { background: var(--gradient-green); }
+    .portfolio-thumb.t4 { background: linear-gradient(135deg,#8b5cf6,#ec4899); }
+    .portfolio-thumb-icon { font-size:40px; opacity:0.8; }
+    .portfolio-thumb iframe {
+      position:absolute; inset:0; width:100%; height:100%;
+      border:none; pointer-events:none;
+      transform:scale(0.5); transform-origin:top left;
+      width:200%; height:200%;
+    }
+    .portfolio-overlay {
+      position:absolute; inset:0;
+      background:linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.7) 100%);
+    }
+    .portfolio-info { padding:12px; }
+    .portfolio-name { font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:3px; }
+    .portfolio-cat { font-size:11px; color:var(--text-muted); }
+    .portfolio-badge {
+      position:absolute; top:8px; right:8px;
+      padding:3px 8px; border-radius:20px;
+      font-size:10px; font-weight:700;
+      background:rgba(0,0,0,0.6); color:#fff;
+      backdrop-filter:blur(4px);
+    }
+
+    /* ============================================================
+       PAYMENTS SECTION
+    ============================================================ */
+    .payment-methods { padding: 0 20px; display:flex; flex-direction:column; gap:12px; }
+    .payment-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display:flex; align-items:center; gap:14px;
+      cursor:pointer;
+      transition:var(--transition);
+    }
+    .payment-card:hover { border-color:var(--accent-1); background:var(--bg-card-hover); transform:translateX(4px); }
+    .payment-logo {
+      width:50px; height:50px; border-radius:var(--radius-sm);
+      display:flex; align-items:center; justify-content:center;
+      font-size:22px; font-weight:800;
+      flex-shrink:0;
+    }
+    .payment-logo.bank { background:linear-gradient(135deg,#1e40af,#3b82f6); }
+    .payment-logo.easypaisa { background:linear-gradient(135deg,#064e3b,#10b981); }
+    .payment-logo.jazzcash { background:linear-gradient(135deg,#92400e,#f59e0b); }
+    .payment-logo.crypto { background:linear-gradient(135deg,#7c3aed,#06b6d4); }
+    .payment-info { flex:1; }
+    .payment-name { font-size:14px; font-weight:700; color:var(--text-primary); }
+    .payment-desc { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .payment-arrow { color:var(--text-muted); font-size:20px; }
+
+    /* ============================================================
+       UPLOAD AREA
+    ============================================================ */
+    .upload-area {
+      margin: 0 20px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 32px 20px;
+      text-align:center;
+      cursor:pointer;
+      transition:var(--transition);
+      background: var(--glass);
+    }
+    .upload-area:hover { border-color:var(--accent-1); background:rgba(124,58,237,0.1); }
+    .upload-icon { font-size:40px; margin-bottom:10px; }
+    .upload-text { font-size:14px; color:var(--text-secondary); font-weight:600; }
+    .upload-hint { font-size:12px; color:var(--text-muted); margin-top:4px; }
+
+    /* ============================================================
+       NOTIFICATIONS
+    ============================================================ */
+    .notif-list { padding:0 20px; display:flex; flex-direction:column; gap:10px; }
+    .notif-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display:flex; gap:12px; align-items:flex-start;
+      transition:var(--transition);
+      position:relative;
+    }
+    .notif-item.unread { border-left: 3px solid var(--accent-1); }
+    .notif-item:hover { background: var(--bg-card-hover); }
+    .notif-dot {
+      width:10px; height:10px; border-radius:50%;
+      background: var(--gradient-brand);
+      flex-shrink:0; margin-top:4px;
+    }
+    .notif-dot.read { background: var(--border); }
+    .notif-body { flex:1; }
+    .notif-title { font-size:13px; font-weight:700; color:var(--text-primary); margin-bottom:3px; }
+    .notif-msg { font-size:12px; color:var(--text-muted); line-height:1.5; }
+    .notif-time { font-size:11px; color:var(--text-muted); margin-top:5px; }
+    .notif-icon { font-size:22px; flex-shrink:0; }
+
+    /* ============================================================
+       PROFILE
+    ============================================================ */
+    .profile-hero {
+      background: var(--gradient-brand);
+      padding: 30px 20px 60px;
+      text-align:center;
+      position:relative;
+    }
+    .profile-avatar-wrap {
+      width:80px; height:80px; border-radius:50%;
+      background:rgba(255,255,255,0.2);
+      border: 3px solid rgba(255,255,255,0.5);
+      margin:0 auto 12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:32px;
+      position:relative;
+    }
+    .profile-avatar-wrap .edit-btn {
+      position:absolute; bottom:-4px; right:-4px;
+      width:26px; height:26px; border-radius:50%;
+      background:#fff; color:var(--accent-1);
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; cursor:pointer; border:none;
+      box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    }
+    .profile-name { font-size:20px; font-weight:800; color:#fff; }
+    .profile-email { font-size:13px; color:rgba(255,255,255,0.8); margin-top:2px; }
+
+    .profile-points {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin: -30px 20px 0;
+      padding: 16px;
+      display:flex; align-items:center; gap:14px;
+      box-shadow: var(--shadow);
+      position:relative; z-index:2;
+    }
+    .points-icon { font-size:30px; }
+    .points-info { flex:1; }
+    .points-label { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); font-weight:600; }
+    .points-value { font-size:24px; font-weight:800; background:var(--gradient-gold); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+
+    .menu-list { margin:20px 20px 0; display:flex; flex-direction:column; gap:10px; }
+    .menu-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      display:flex; align-items:center; gap:14px;
+      cursor:pointer; transition:var(--transition);
+    }
+    .menu-item:hover { border-color:var(--accent-1); background:var(--bg-card-hover); }
+    .menu-item-icon {
+      width:40px; height:40px; border-radius:var(--radius-xs);
+      background: var(--glass);
+      border: 1px solid var(--border-accent);
+      display:flex; align-items:center; justify-content:center; font-size:18px;
+    }
+    .menu-item-text { flex:1; }
+    .menu-item-label { font-size:14px; font-weight:600; color:var(--text-primary); }
+    .menu-item-desc { font-size:12px; color:var(--text-muted); }
+    .menu-item-arrow { color:var(--text-muted); font-size:16px; }
+    .menu-item.danger .menu-item-label { color:var(--accent-danger); }
+
+    /* ============================================================
+       ADMIN PANEL
+    ============================================================ */
+    .admin-grid { padding: 0 20px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .admin-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      text-align:center;
+      cursor:pointer;
+      transition:var(--transition);
+    }
+    .admin-card:hover { border-color:var(--accent-1); transform:translateY(-3px); box-shadow:var(--shadow-glow); }
+    .admin-card-icon { font-size:32px; margin-bottom:10px; display:block; }
+    .admin-card-label { font-size:13px; font-weight:700; color:var(--text-primary); }
+    .admin-card-count { font-size:22px; font-weight:800; color:var(--accent-1); margin:4px 0; }
+    .admin-card-desc { font-size:11px; color:var(--text-muted); }
+
+    .admin-table-wrap { padding:0 20px; margin-top:4px; }
+    .admin-table {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow:hidden;
+      width:100%;
+    }
+    .admin-table-header {
+      background: var(--glass);
+      border-bottom: 1px solid var(--border);
+      padding:12px 16px;
+      font-size:11px; font-weight:700; text-transform:uppercase;
+      letter-spacing:1px; color:var(--text-muted);
+      display:grid; grid-template-columns:1fr auto auto;
+      gap:10px;
+    }
+    .admin-table-row {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display:grid; grid-template-columns:1fr auto auto;
+      gap:10px; align-items:center;
+      transition:var(--transition);
+      cursor:pointer;
+    }
+    .admin-table-row:last-child { border-bottom:none; }
+    .admin-table-row:hover { background:var(--bg-card-hover); }
+    .row-name { font-size:13px; font-weight:600; color:var(--text-primary); }
+    .row-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+    .row-amount { font-size:13px; font-weight:700; color:var(--accent-success); }
+    .row-actions { display:flex; gap:6px; }
+    .action-btn {
+      width:28px; height:28px; border-radius:var(--radius-xs);
+      border:1px solid var(--border); background:none;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      font-size:14px; color:var(--text-muted);
+      transition:var(--transition);
+    }
+    .action-btn:hover { border-color:var(--accent-1); color:var(--accent-1); background:var(--glass); }
+    .action-btn.del:hover { border-color:var(--accent-danger); color:var(--accent-danger); background:rgba(239,68,68,0.1); }
+
+    .form-group { margin: 0 20px 14px; }
+    .form-label { font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:block; }
+    .form-input, .form-select, .form-textarea {
+      width:100%; padding:12px 14px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size:14px; font-family:'Inter',sans-serif;
+      transition:var(--transition); outline:none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent-1);
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+    .form-textarea { min-height:80px; resize:vertical; }
+    .form-select { appearance:none; }
+
+    .toggle-row {
+      margin: 0 20px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .toggle-info .toggle-label { font-size:14px; font-weight:600; color:var(--text-primary); }
+    .toggle-info .toggle-desc { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    .toggle-switch {
+      width:50px; height:26px; border-radius:13px;
+      background: var(--border);
+      position:relative; cursor:pointer;
+      transition:var(--transition);
+      border:none;
+      flex-shrink:0;
+    }
+    .toggle-switch.on { background: var(--gradient-brand); }
+    .toggle-switch::after {
+      content:'';
+      position:absolute; left:3px; top:3px;
+      width:20px; height:20px; border-radius:50%;
+      background:#fff;
+      transition:var(--transition);
+      box-shadow:0 2px 4px rgba(0,0,0,0.3);
+    }
+    .toggle-switch.on::after { left:27px; }
+
+    /* ============================================================
+       MAINTENANCE SCREEN
+    ============================================================ */
+    #maintenance-screen {
+      display:none;
+      position:fixed; inset:0; z-index:5000;
+      background: var(--bg-base);
+      align-items:center; justify-content:center;
+      flex-direction:column; text-align:center;
+      padding:30px;
+    }
+    #maintenance-screen.show { display:flex; }
+    .maintenance-anim {
+      width:120px; height:120px; margin-bottom:30px;
+      border-radius:50%;
+      background: var(--gradient-brand);
+      display:flex; align-items:center; justify-content:center;
+      font-size:50px;
+      animation:maintenancePulse 2s ease-in-out infinite;
+      box-shadow: 0 0 60px rgba(124,58,237,0.4);
+    }
+    .maintenance-title {
+      font-family:'Orbitron',sans-serif; font-size:clamp(22px,5vw,30px);
+      font-weight:900; color:var(--text-primary); margin-bottom:12px;
+    }
+    .maintenance-sub { font-size:15px; color:var(--text-secondary); max-width:300px; line-height:1.6; margin-bottom:24px; }
+    .maintenance-eta {
+      background: var(--glass);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      padding: 12px 24px;
+      font-size:14px; color:var(--text-secondary);
+    }
+    .maintenance-eta strong { color:var(--accent-2); }
+    @keyframes maintenancePulse { 0%,100%{transform:scale(1);box-shadow:0 0 60px rgba(124,58,237,0.4)} 50%{transform:scale(1.05);box-shadow:0 0 80px rgba(124,58,237,0.7)} }
+
+    /* ============================================================
+       BOTTOM NAV
+    ============================================================ */
+    .bottom-nav {
+      position: fixed; bottom:0; left:50%; transform:translateX(-50%);
+      width:100%; max-width:480px;
+      background: var(--nav-bg);
+      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+      border-top: 1px solid var(--border);
+      display:grid; grid-template-columns:repeat(5,1fr);
+      padding: 8px 0 env(safe-area-inset-bottom, 0px);
+      z-index:200;
+    }
+    .nav-item {
+      display:flex; flex-direction:column; align-items:center;
+      gap:3px; padding:8px 4px;
+      cursor:pointer; border:none; background:none;
+      transition:var(--transition);
+      position:relative;
+    }
+    .nav-icon { font-size:22px; transition:var(--transition); color:var(--text-muted); }
+    .nav-label { font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
+    .nav-item.active .nav-icon, .nav-item.active .nav-label { color:var(--accent-1); }
+    .nav-item.active .nav-icon { transform:scale(1.15); }
+    .nav-indicator {
+      position:absolute; top:0; left:50%; transform:translateX(-50%);
+      width:20px; height:3px; border-radius:0 0 3px 3px;
+      background: var(--gradient-brand);
+      opacity:0; transition:var(--transition);
+    }
+    .nav-item.active .nav-indicator { opacity:1; }
+    .nav-badge {
+      position:absolute; top:4px; right:calc(50% - 14px);
+      width:16px; height:16px; border-radius:50%;
+      background: var(--accent-danger);
+      font-size:9px; font-weight:700; color:#fff;
+      display:flex; align-items:center; justify-content:center;
+    }
+
+    /* ============================================================
+       FAB WHATSAPP
+    ============================================================ */
+    .fab-whatsapp {
+      position: fixed; bottom:90px; right:20px;
+      width:56px; height:56px; border-radius:50%;
+      background: linear-gradient(135deg, #25d366, #128c7e);
+      display:flex; align-items:center; justify-content:center;
+      font-size:28px; cursor:pointer; border:none;
+      box-shadow: 0 4px 20px rgba(37,211,102,0.5);
+      z-index:300;
+      animation: fabPulse 3s ease-in-out infinite;
+      transition:var(--transition);
+    }
+    .fab-whatsapp:hover { transform:scale(1.1); }
+    .fab-tooltip {
+      position:absolute; right:65px; top:50%;
+      transform:translateY(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 6px 12px;
+      font-size:12px; font-weight:600; color:var(--text-primary);
+      white-space:nowrap;
+      opacity:0; pointer-events:none;
+      transition:var(--transition);
+    }
+    .fab-whatsapp:hover .fab-tooltip { opacity:1; }
+    @keyframes fabPulse { 0%,100%{box-shadow:0 4px 20px rgba(37,211,102,0.5)} 50%{box-shadow:0 4px 30px rgba(37,211,102,0.8), 0 0 0 8px rgba(37,211,102,0.1)} }
+
+    /* ============================================================
+       MODALS
+    ============================================================ */
+    .modal-overlay {
+      position:fixed; inset:0; z-index:1000;
+      background:rgba(0,0,0,0.7);
+      backdrop-filter:blur(4px);
+      display:flex; align-items:flex-end; justify-content:center;
+      opacity:0; pointer-events:none; transition:opacity 0.3s ease;
+    }
+    .modal-overlay.open { opacity:1; pointer-events:all; }
+    .modal-sheet {
+      background: var(--bg-surface);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 20px 20px 40px;
+      width:100%; max-width:480px;
+      max-height:85vh; overflow-y:auto;
+      transform:translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modal-overlay.open .modal-sheet { transform:none; }
+    .modal-handle {
+      width:40px; height:4px; border-radius:2px;
+      background: var(--border);
+      margin: 0 auto 20px;
+    }
+    .modal-title { font-size:18px; font-weight:800; color:var(--text-primary); margin-bottom:20px; }
+
+    /* ============================================================
+       BUTTONS
+    ============================================================ */
+    .btn-primary {
+      width:100%; padding:14px;
+      background: var(--gradient-brand);
+      border:none; border-radius: var(--radius-sm);
+      color:#fff; font-size:15px; font-weight:700;
+      cursor:pointer; transition:var(--transition);
+      font-family:'Inter',sans-serif;
+    }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow: 0 8px 25px rgba(124,58,237,0.4); }
+    .btn-primary:active { transform:translateY(0); }
+    .btn-secondary {
+      width:100%; padding:13px;
+      background:none; border: 1px solid var(--border);
+      border-radius:var(--radius-sm);
+      color:var(--text-secondary); font-size:14px; font-weight:600;
+      cursor:pointer; transition:var(--transition);
+      font-family:'Inter',sans-serif; margin-top:10px;
+    }
+    .btn-secondary:hover { border-color:var(--accent-1); color:var(--accent-1); }
+
+    /* ============================================================
+       MISC UTILS
+    ============================================================ */
+    .spacer { height: 16px; }
+    .tag {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:3px 10px; border-radius:20px;
+      font-size:11px; font-weight:600;
+      background: var(--glass);
+      border: 1px solid var(--border-accent);
+      color:var(--accent-1);
+    }
+    .divider { height:1px; background:var(--border); margin: 16px 20px; }
+
+    /* ============================================================
+       RESPONSIVE / CONTAINER
+    ============================================================ */
+    @media (min-width:481px) {
+      .app-container {
+        box-shadow: 0 0 60px rgba(0,0,0,0.5);
+        min-height:100vh;
+      }
+      body { background: #050507; }
+    }
+
+    /* ============================================================
+       ANIMATIONS
+    ============================================================ */
+    .fade-in { animation: fadeIn 0.4s ease both; }
+    .slide-up { animation: slideUp 0.4s ease both; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+    /* Shimmer skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-card-hover) 50%, var(--bg-card) 100%);
+      background-size:200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* Login screen */
+    .login-screen {
+      min-height:100vh;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      padding:30px 20px;
+    }
+    .login-logo-wrap { text-align:center; margin-bottom:40px; }
+    .login-logo {
+      width:80px; height:80px; border-radius:24px;
+      background: var(--gradient-brand);
+      display:flex; align-items:center; justify-content:center;
+      font-size:36px; margin:0 auto 16px;
+      box-shadow: var(--shadow-glow);
+      animation:splashPulse 3s ease-in-out infinite;
+    }
+    .login-title { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900; background:var(--gradient-brand); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .login-sub { font-size:13px; color:var(--text-muted); margin-top:4px; }
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding:28px 24px;
+      width:100%; max-width:400px;
+      box-shadow: var(--shadow);
+    }
+    .login-card h2 { font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:6px; }
+    .login-card p { font-size:13px; color:var(--text-muted); margin-bottom:24px; }
+    .divider-or {
+      display:flex; align-items:center; gap:12px;
+      margin:16px 0;
+    }
+    .divider-or span { flex:1; height:1px; background:var(--border); }
+    .divider-or em { font-style:normal; font-size:12px; color:var(--text-muted); }
+    .btn-google {
+      width:100%; padding:13px;
+      background: var(--bg-input);
+      border:1px solid var(--border);
+      border-radius:var(--radius-sm);
+      color:var(--text-primary); font-size:14px; font-weight:600;
+      cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px;
+      font-family:'Inter',sans-serif; transition:var(--transition);
+    }
+    .btn-google:hover { border-color:#4285f4; background:rgba(66,133,244,0.1); }
+
+    /* Scrollable page content helper */
+    .page-content { overflow-y:auto; }
+
+    /* Quick ticket/comment */
+    .comment-thread { padding:0 20px; display:flex; flex-direction:column; gap:10px; }
+    .comment-item {
+      display:flex; gap:10px; align-items:flex-start;
+    }
+    .comment-avatar {
+      width:34px; height:34px; border-radius:50%;
+      flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:13px; color:#fff;
+    }
+    .comment-bubble {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) var(--radius-sm);
+      padding: 10px 14px;
+      flex:1;
+    }
+    .comment-bubble.mine {
+      background: rgba(124,58,237,0.15);
+      border-color: rgba(124,58,237,0.3);
+      border-radius: var(--radius-sm) 0 var(--radius-sm) var(--radius-sm);
+    }
+    .comment-item.mine { flex-direction:row-reverse; }
+    .comment-item.mine .comment-bubble { }
+    .comment-author { font-size:12px; font-weight:700; color:var(--text-primary); margin-bottom:3px; }
+    .comment-text { font-size:13px; color:var(--text-secondary); line-height:1.5; }
+    .comment-ts { font-size:10px; color:var(--text-muted); margin-top:4px; }
+
+    /* Chart placeholder */
+    .chart-area {
+      margin: 0 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      height:160px;
+      position:relative;
+      overflow:hidden;
+    }
+    .chart-bars {
+      position:absolute; bottom:20px; left:20px; right:20px;
+      display:flex; align-items:flex-end; gap:8px;
+      height:120px;
+    }
+    .chart-bar {
+      flex:1; border-radius:4px 4px 0 0;
+      background: var(--gradient-brand);
+      opacity:0.7;
+      transition:opacity 0.2s;
+      cursor:pointer;
+    }
+    .chart-bar:hover { opacity:1; }
+    .chart-label { font-size:11px; color:var(--text-muted); margin-bottom:6px; font-weight:600; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     SPLASH SCREEN
+============================================================ -->
+<div id="splash">
+  <div class="splash-logo-ring">
+    <span class="splash-logo-icon">⚡</span>
+  </div>
+  <div class="splash-brand">
+    <div class="splash-title">AppCraft</div>
+    <div class="splash-sub">by DigitalSpot</div>
+  </div>
+  <div class="splash-bars">
+    <div class="splash-bar"></div>
+    <div class="splash-bar"></div>
+    <div class="splash-bar"></div>
+    <div class="splash-bar"></div>
+    <div class="splash-bar"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAINTENANCE MODAL (demo togglable)
+============================================================ -->
+<div id="maintenance-screen">
+  <div class="maintenance-anim">🔧</div>
+  <h1 class="maintenance-title">We Are Upgrading</h1>
+  <p class="maintenance-sub">Our team is working hard to bring you a better experience. We'll be back shortly!</p>
+  <div class="maintenance-eta">Estimated back in: <strong>2 hours</strong></div>
+  <div style="margin-top:20px;">
+    <button onclick="document.getElementById('maintenance-screen').classList.remove('show')" style="background:none;border:1px solid rgba(255,255,255,0.3);color:var(--text-muted);padding:8px 20px;border-radius:8px;cursor:pointer;font-size:12px;">Admin Override — Exit</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL
+============================================================ -->
+<div class="app-container">
+
+  <!-- TOP HEADER -->
+  <div class="top-header">
+    <span class="header-brand">AppCraft ⚡</span>
+    <div class="header-actions">
+      <!-- Theme toggle -->
+      <button class="icon-btn" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">🌙</button>
+      <!-- Notifications -->
+      <button class="icon-btn" onclick="navigate('notifications')" title="Notifications" style="position:relative;">
+        🔔
+        <span style="position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#ef4444;"></span>
+      </button>
+      <!-- Avatar -->
+      <div class="avatar" onclick="navigate('profile')">JD</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN: HOME
+  ============================================================ -->
+  <div id="screen-home" class="screen active fade-in">
+
+    <!-- Alert Banner -->
+    <div class="alert-banner" id="alertBanner">
+      <span class="alert-icon">🚀</span>
+      <div class="alert-text">
+        <strong>New Feature Live!</strong>
+        Real-time order tracking is now available. Check your dashboard!
+      </div>
+      <button class="alert-close" onclick="document.getElementById('alertBanner').style.display='none'">×</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="section-header">
+      <div class="section-title">Dashboard <span>Overview</span></div>
+      <button class="see-all" onclick="navigate('admin')">Admin →</button>
+    </div>
+    <div class="stats-scroll">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-value">24</div>
+        <div class="stat-change">↑ 12% this month</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-icon">💰</div>
+        <div class="stat-label">Revenue</div>
+        <div class="stat-value">$18.4k</div>
+        <div class="stat-change" style="color:var(--accent-3);">↑ 8% this month</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Delivered</div>
+        <div class="stat-value">18</div>
+        <div class="stat-change" style="color:var(--accent-success);">All on time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-label">Open Tickets</div>
+        <div class="stat-value" style="color:var(--accent-2);">3</div>
+        <div class="stat-change" style="color:var(--accent-2);">2 urgent</div>
+      </div>
+    </div>
+
+    <!-- Revenue Chart -->
+    <div class="section-header">
+      <div class="section-title">Monthly <span>Revenue</span></div>
+    </div>
+    <div class="chart-area">
+      <div class="chart-label">Revenue (USD) — Last 6 Months</div>
+      <div class="chart-bars">
+        <div class="chart-bar" style="height:45%;background:var(--gradient-brand);"></div>
+        <div class="chart-bar" style="height:70%;"></div>
+        <div class="chart-bar" style="height:55%;background:var(--gradient-gold);"></div>
+        <div class="chart-bar" style="height:85%;"></div>
+        <div class="chart-bar" style="height:60%;background:var(--gradient-green);"></div>
+        <div class="chart-bar" style="height:95%;"></div>
+      </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="section-header">
+      <div class="section-title">Recent <span>Orders</span></div>
+      <button class="see-all" onclick="navigate('orders')">See All →</button>
+    </div>
+    <div class="cards-list">
+
+      <div class="order-card status-dev slide-up" onclick="openOrderModal()">
+        <div class="order-top">
+          <div>
+            <div class="order-id">#ORD-2024-001</div>
+            <div class="order-name">E-Commerce Mobile App</div>
+          </div>
+          <span class="badge badge-dev">Dev</span>
+        </div>
+        <div class="order-progress">
+          <div class="progress-label"><span>Progress</span><span>65%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+        </div>
+        <div class="order-meta">
+          <div class="order-meta-item">📅 <strong>Dec 20</strong></div>
+          <div class="order-meta-item">💰 <strong>$2,400</strong></div>
+          <div class="order-meta-item">🔔 <strong>3 updates</strong></div>
+        </div>
+      </div>
+
+      <div class="order-card status-review slide-up" style="animation-delay:0.1s" onclick="openOrderModal()">
+        <div class="order-top">
+          <div>
+            <div class="order-id">#ORD-2024-002</div>
+            <div class="order-name">SaaS Dashboard Portal</div>
+          </div>
+          <span class="badge badge-review">Review</span>
+        </div>
+        <div class="order-progress">
+          <div class="progress-label"><span>Progress</span><span>90%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:90%;background:var(--gradient-gold)"></div></div>
+        </div>
+        <div class="order-meta">
+          <div class="order-meta-item">📅 <strong>Dec 15</strong></div>
+          <div class="order-meta-item">💰 <strong>$3,800</strong></div>
+          <div class="order-meta-item">🔔 <strong>1 update</strong></div>
+        </div>
+      </div>
+
+      <div class="order-card status-done slide-up" style="animation-delay:0.2s" onclick="openOrderModal()">
+        <div class="order-top">
+          <div>
+            <div class="order-id">#ORD-2024-003</div>
+            <div class="order-name">Delivery Tracking App</div>
+          </div>
+          <span class="badge badge-done">Done ✓</span>
+        </div>
+        <div class="order-progress">
+          <div class="progress-label"><span>Progress</span><span>100%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--gradient-green)"></div></div>
+        </div>
+        <div class="order-meta">
+          <div class="order-meta-item">📅 <strong>Nov 30</strong></div>
+          <div class="order-meta-item">💰 <strong>$1,900</strong></div>
+          <div class="order-meta-item">⭐ <strong>5/5</strong></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN: PORTFOLIO
+  ============================================================ -->
+  <div id="screen-portfolio" class="screen fade-in">
+    <div class="section-header">
+      <div class="section-title">Our <span>Portfolio</span></div>
+      <span class="tag">12 Projects</span>
+    </div>
+
+    <div class="portfolio-grid">
+      <div class="portfolio-card" onclick="openPortfolioModal('E-Commerce App')">
+        <div class="portfolio-thumb">
+          <span class="portfolio-thumb-icon">🛒</span>
+          <div class="portfolio-overlay"></div>
+        </div>
+        <span class="portfolio-badge">Live ✓</span>
+        <div class="portfolio-info">
+          <div class="portfolio-name">ShopFlow Pro</div>
+          <div class="portfolio-cat">E-Commerce · React Native</div>
+        </div>
+      </div>
+      <div class="portfolio-card" onclick="openPortfolioModal('SaaS Dashboard')">
+        <div class="portfolio-thumb t2">
+          <span class="portfolio-thumb-icon">📊</span>
+          <div class="portfolio-overlay"></div>
+        </div>
+        <span class="portfolio-badge">Live ✓</span>
+        <div class="portfolio-info">
+          <div class="portfolio-name">MetricsPulse</div>
+          <div class="portfolio-cat">SaaS · Next.js</div>
+        </div>
+      </div>
+      <div class="portfolio-card" onclick="openPortfolioModal('Food Delivery')">
+        <div class="portfolio-thumb t3">
+          <span class="portfolio-thumb-icon">🍔</span>
+          <div class="portfolio-overlay"></div>
+        </div>
+        <span class="portfolio-badge">Live ✓</span>
+        <div class="portfolio-info">
+          <div class="portfolio-name">QuickBite</div>
+          <div class="portfolio-cat">Food Delivery · Flutter</div>
+        </div>
+      </div>
+      <div class="portfolio-card" onclick="openPortfolioModal('Real Estate')">
+        <div class="portfolio-thumb t4">
+          <span class="portfolio-thumb-icon">🏠</span>
+          <div class="portfolio-overlay"></div>
+        </div>
+        <span class="portfolio-badge">Demo</span>
+        <div class="portfolio-info">
+          <div class="portfolio-name">EstateView</div>
+          <div class="portfolio-cat">Real Estate · Vue.js</div>
+        </div>
+      </div>
+      <div class="portfolio-card" onclick="openPortfolioModal('Fitness App')">
+        <div class="portfolio-thumb" style="background:linear-gradient(135deg,#0f766e,#14b8a6)">
+          <span class="portfolio-thumb-icon">💪</span>
+          <div class="portfolio-overlay"></div>
+        </div>
+        <div class="portfolio-info">
+          <div class="portfolio-name">FitTrack360</div>
+          <div class="portfolio-cat">Fitness · React Native</div>
+        </div>
+      </div>
+      <div class="portfolio-card" onclick="openPortfolioModal('FinTech')">
+        <div class="portfolio-thumb" style="background:linear-gradient(135deg,#0e7490,#0284c7)">
+          <span class="portfolio-thumb-icon">💳</span>
+          <div class="portfolio-overlay"></div>
+        </div>
+        <div class="portfolio-info">
+          <div class="portfolio-name">WalletX</div>
+          <div class="portfolio-cat">FinTech · React Native</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- iframe preview placeholder -->
+    <div class="section-header" style="margin-top:20px">
+      <div class="section-title">Live <span>Preview</span></div>
+    </div>
+    <div style="margin:0 20px;border-radius:var(--radius);overflow:hidden;border:2px solid var(--border-accent);position:relative;height:200px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+      <span style="font-size:40px;">🌐</span>
+      <div style="font-size:13px;color:var(--text-muted);text-align:center;">Click a project card to view<br>live iframe embed preview</div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN: ORDERS (Track Order)
+  ============================================================ -->
+  <div id="screen-orders" class="screen fade-in">
+    <div class="section-header">
+      <div class="section-title">Track <span>My Order</span></div>
+    </div>
+
+    <!-- Order Stepper -->
+    <div class="stepper-card">
+      <div class="stepper-title">📦 Order #ORD-2024-001 — E-Commerce App</div>
+      <div class="stepper">
+        <div class="step done">
+          <div class="step-dot">
+            <span class="icon">📋</span>
+            <span class="check">✓</span>
+          </div>
+          <div class="step-label">Requirements</div>
+        </div>
+        <div class="step done">
+          <div class="step-dot">
+            <span class="icon">🎨</span>
+            <span class="check">✓</span>
+          </div>
+          <div class="step-label">Design</div>
+        </div>
+        <div class="step active">
+          <div class="step-dot">
+            <span class="icon">💻</span>
+          </div>
+          <div class="step-label">Development</div>
+        </div>
+        <div class="step">
+          <div class="step-dot"><span class="icon">🧪</span></div>
+          <div class="step-label">Testing</div>
+        </div>
+        <div class="step">
+          <div class="step-dot"><span class="icon">🚀</span></div>
+          <div class="step-label">Delivery</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comment Thread -->
+    <div class="section-header">
+      <div class="section-title">Project <span>Comments</span></div>
+    </div>
+    <div class="comment-thread">
+      <div class="comment-item">
+        <div class="comment-avatar" style="background:var(--gradient-brand);">A</div>
+        <div class="comment-bubble">
+          <div class="comment-author">Admin — DigitalSpot</div>
+          <div class="comment-text">Development phase has started! We've completed the user authentication module. Next up: product catalog.</div>
+          <div class="comment-ts">Today, 10:23 AM</div>
+        </div>
+      </div>
+      <div class="comment-item mine">
+        <div class="comment-avatar" style="background:var(--gradient-gold);">J</div>
+        <div class="comment-bubble mine">
+          <div class="comment-author">You (John Doe)</div>
+          <div class="comment-text">Great progress! Please make sure the product images support 4K resolution uploads.</div>
+          <div class="comment-ts">Today, 11:05 AM</div>
+        </div>
+      </div>
+      <div class="comment-item">
+        <div class="comment-avatar" style="background:var(--gradient-green);">A</div>
+        <div class="comment-bubble">
+          <div class="comment-author">Admin — DigitalSpot</div>
+          <div class="comment-text">Absolutely! We'll integrate Firebase Storage with optimized image delivery via CDN. ✅</div>
+          <div class="comment-ts">Today, 11:30 AM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Upload -->
+    <div class="section-header">
+      <div class="section-title">Payment <span>Receipt</span></div>
+    </div>
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" style="display:none" accept="image/*,.pdf" onchange="showUploadSuccess()">
+      <div class="upload-icon">📎</div>
+      <div class="upload-text">Upload Payment Receipt</div>
+      <div class="upload-hint">JPG, PNG, PDF — Max 10MB</div>
+    </div>
+    <div id="uploadSuccess" style="display:none;margin:10px 20px;padding:12px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:var(--radius-sm);font-size:13px;color:#34d399;text-align:center;">
+      ✅ Receipt uploaded successfully! Pending admin verification.
+    </div>
+
+    <!-- Payment Methods -->
+    <div class="section-header">
+      <div class="section-title">Payment <span>Methods</span></div>
+    </div>
+    <div class="payment-methods">
+      <div class="payment-card" onclick="openPaymentModal('Bank Transfer')">
+        <div class="payment-logo bank">🏦</div>
+        <div class="payment-info">
+          <div class="payment-name">Bank Transfer</div>
+          <div class="payment-desc">HBL · Account ending 4521</div>
+        </div>
+        <span class="payment-arrow">›</span>
+      </div>
+      <div class="payment-card" onclick="openPaymentModal('EasyPaisa')">
+        <div class="payment-logo easypaisa">EP</div>
+        <div class="payment-info">
+          <div class="payment-name">EasyPaisa</div>
+          <div class="payment-desc">+92 300-1234567</div>
+        </div>
+        <span class="payment-arrow">›</span>
+      </div>
+      <div class="payment-card" onclick="openPaymentModal('JazzCash')">
+        <div class="payment-logo jazzcash">JC</div>
+        <div class="payment-info">
+          <div class="payment-name">JazzCash</div>
+          <div class="payment-desc">+92 311-7654321</div>
+        </div>
+        <span class="payment-arrow">›</span>
+      </div>
+      <div class="payment-card" onclick="openPaymentModal('Crypto USDT')">
+        <div class="payment-logo crypto">₿</div>
+        <div class="payment-info">
+          <div class="payment-name">Crypto (USDT/TRC-20)</div>
+          <div class="payment-desc">Tron network · Wallet on file</div>
+        </div>
+        <span class="payment-arrow">›</span>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN: NOTIFICATIONS
+  ============================================================ -->
+  <div id="screen-notifications" class="screen fade-in">
+    <div class="section-header">
+      <div class="section-title">🔔 <span>Notifications</span></div>
+      <button class="see-all">Mark all read</button>
+    </div>
+    <div class="notif-list">
+      <div class="notif-item unread">
+        <span class="notif-icon">💳</span>
+        <div class="notif-body">
+          <div class="notif-title">Payment Verified! ✅</div>
+          <div class="notif-msg">Your EasyPaisa payment of Rs. 15,000 for Order #ORD-2024-001 has been confirmed.</div>
+          <div class="notif-time">2 minutes ago</div>
+        </div>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="notif-item unread">
+        <span class="notif-icon">💻</span>
+        <div class="notif-body">
+          <div class="notif-title">Development Update 🚀</div>
+          <div class="notif-msg">Your E-Commerce app has reached 65% completion. Design phase approved!</div>
+          <div class="notif-time">1 hour ago</div>
+        </div>
+        <div class="notif-dot"></div>
+      </div>
+      <div class="notif-item">
+        <span class="notif-icon">🎉</span>
+        <div class="notif-body">
+          <div class="notif-title">Loyalty Points Earned! ⭐</div>
+          <div class="notif-msg">You earned 200 loyalty points for completing order #ORD-2024-003.</div>
+          <div class="notif-time">Yesterday, 3:45 PM</div>
+        </div>
+        <div class="notif-dot read"></div>
+      </div>
+      <div class="notif-item">
+        <span class="notif-icon">📢</span>
+        <div class="notif-body">
+          <div class="notif-title">Broadcast: Holiday Schedule 📅</div>
+          <div class="notif-msg">Our team will be on reduced hours Dec 24–26. Urgent requests still handled via WhatsApp.</div>
+          <div class="notif-time">2 days ago</div>
+        </div>
+        <div class="notif-dot read"></div>
+      </div>
+      <div class="notif-item">
+        <span class="notif-icon">🎫</span>
+        <div class="notif-body">
+          <div class="notif-title">Ticket #TKT-089 Resolved ✓</div>
+          <div class="notif-msg">Your support ticket regarding login issues has been resolved.</div>
+          <div class="notif-time">3 days ago</div>
+        </div>
+        <div class="notif-dot read"></div>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN: PROFILE
+  ============================================================ -->
+  <div id="screen-profile" class="screen fade-in">
+    <div class="profile-hero">
+      <div class="profile-avatar-wrap">
+        👤
+        <button class="edit-btn">✏️</button>
+      </div>
+      <div class="profile-name">John Doe</div>
+      <div class="profile-email">john.doe@example.com</div>
+    </div>
+
+    <!-- Loyalty Points Card -->
+    <div class="profile-points">
+      <span class="points-icon">⭐</span>
+      <div class="points-info">
+        <div class="points-label">Loyalty Points</div>
+        <div class="points-value">2,450 pts</div>
+      </div>
+      <button onclick="alert('Redeem coming soon!')" style="background:var(--gradient-gold);border:none;border-radius:var(--radius-xs);color:#fff;font-size:12px;font-weight:700;padding:8px 14px;cursor:pointer;">Redeem</button>
+    </div>
+
+    <!-- Menu Items -->
+    <div class="menu-list">
+      <div class="menu-item" onclick="openOrderModal()">
+        <div class="menu-item-icon">📦</div>
+        <div class="menu-item-text">
+          <div class="menu-item-label">My Orders</div>
+          <div class="menu-item-desc">View and track all orders</div>
+        </div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item">
+        <div class="menu-item-icon">💳</div>
+        <div class="menu-item-text">
+          <div class="menu-item-label">Payment History</div>
+          <div class="menu-item-desc">Invoices & transactions</div>
+        </div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item">
+        <div class="menu-item-icon">🎫</div>
+        <div class="menu-item-text">
+          <div class="menu-item-label">Support Tickets</div>
+          <div class="menu-item-desc">3 open, 12 resolved</div>
+        </div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item">
+        <div class="menu-item-icon">🔔</div>
+        <div class="menu-item-text">
+          <div class="menu-item-label">Notifications</div>
+          <div class="menu-item-desc">Manage alerts & preferences</div>
+        </div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item">
+        <div class="menu-item-icon">🛡️</div>
+        <div class="menu-item-text">
+          <div class="menu-item-label">Security & Privacy</div>
+          <div class="menu-item-desc">Password, 2FA settings</div>
+        </div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item" onclick="navigate('admin')">
+        <div class="menu-item-icon">⚙️</div>
+        <div class="menu-item-text">
+          <div class="menu-item-label">Admin Panel</div>
+          <div class="menu-item-desc">Super admin controls</div>
+        </div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+      <div class="menu-item danger">
+        <div class="menu-item-icon" style="border-color:rgba(239,68,68,0.3);">🚪</div>
+        <div class="menu-item-text">
+          <div class="menu-item-label">Sign Out</div>
+          <div class="menu-item-desc">Log out of your account</div>
+        </div>
+        <span class="menu-item-arrow">›</span>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN: ADMIN PANEL
+  ============================================================ -->
+  <div id="screen-admin" class="screen fade-in">
+    <div class="section-header">
+      <div class="section-title">⚙️ <span>Admin Panel</span></div>
+      <span class="tag" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171;">Super Admin</span>
+    </div>
+
+    <!-- Admin Quick Actions -->
+    <div class="admin-grid">
+      <div class="admin-card" onclick="openAdminSection('users')">
+        <span class="admin-card-icon">👥</span>
+        <div class="admin-card-label">Users</div>
+        <div class="admin-card-count">48</div>
+        <div class="admin-card-desc">Manage accounts</div>
+      </div>
+      <div class="admin-card" onclick="openAdminSection('orders')">
+        <span class="admin-card-icon">📦</span>
+        <div class="admin-card-label">Orders</div>
+        <div class="admin-card-count">24</div>
+        <div class="admin-card-desc">View & update</div>
+      </div>
+      <div class="admin-card" onclick="openAdminSection('payments')">
+        <span class="admin-card-icon">💰</span>
+        <div class="admin-card-label">Payments</div>
+        <div class="admin-card-count" style="color:var(--accent-3);">$18.4k</div>
+        <div class="admin-card-desc">Revenue dashboard</div>
+      </div>
+      <div class="admin-card" onclick="openAdminSection('tickets')">
+        <span class="admin-card-icon">🎫</span>
+        <div class="admin-card-label">Tickets</div>
+        <div class="admin-card-count" style="color:var(--accent-danger);">3</div>
+        <div class="admin-card-desc">Support queue</div>
+      </div>
+      <div class="admin-card" onclick="openAdminSection('portfolio')">
+        <span class="admin-card-icon">🎨</span>
+        <div class="admin-card-label">Portfolio</div>
+        <div class="admin-card-count" style="color:var(--accent-success);">12</div>
+        <div class="admin-card-desc">Manage projects</div>
+      </div>
+      <div class="admin-card" onclick="openAdminSection('notify')">
+        <span class="admin-card-icon">📢</span>
+        <div class="admin-card-label">Broadcast</div>
+        <div class="admin-card-count" style="color:var(--accent-2);">Send</div>
+        <div class="admin-card-desc">Push notifications</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- System Config -->
+    <div class="section-header">
+      <div class="section-title">System <span>Config</span></div>
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">🔧 Maintenance Mode</div>
+        <div class="toggle-desc">Show upgrade screen to clients</div>
+      </div>
+      <button class="toggle-switch" id="maintenanceToggle" onclick="toggleMaintenance(this)"></button>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">📢 Alert Banner</div>
+        <div class="toggle-desc">Show home page alert to users</div>
+      </div>
+      <button class="toggle-switch on" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-info">
+        <div class="toggle-label">🔔 Push Notifications</div>
+        <div class="toggle-desc">Global notification system</div>
+      </div>
+      <button class="toggle-switch on" onclick="this.classList.toggle('on')"></button>
+    </div>
+
+    <div class="form-group" style="margin-top:10px">
+      <label class="form-label">App Name</label>
+      <input class="form-input" value="AppCraft by DigitalSpot" type="text" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">WhatsApp Support Number</label>
+      <input class="form-input" value="+92 300-1234567" type="text" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Global Alert Message</label>
+      <textarea class="form-textarea">🚀 New Feature Live! Real-time order tracking is now available. Check your dashboard!</textarea>
+    </div>
+    <div style="padding:0 20px">
+      <button class="btn-primary">💾 Save Configuration</button>
+    </div>
+
+    <!-- Recent Payments -->
+    <div class="section-header" style="margin-top:16px">
+      <div class="section-title">Pending <span>Payments</span></div>
+    </div>
+    <div class="admin-table-wrap">
+      <div class="admin-table">
+        <div class="admin-table-header">
+          <span>Client / Method</span>
+          <span>Amount</span>
+          <span>Actions</span>
+        </div>
+        <div class="admin-table-row">
+          <div>
+            <div class="row-name">Ahmed Khan</div>
+            <div class="row-sub">EasyPaisa · TXN#44921</div>
+          </div>
+          <div class="row-amount">Rs. 25,000</div>
+          <div class="row-actions">
+            <button class="action-btn" title="Approve" onclick="approvePayment(this)">✅</button>
+            <button class="action-btn del" title="Reject">✕</button>
+          </div>
+        </div>
+        <div class="admin-table-row">
+          <div>
+            <div class="row-name">Sara Malik</div>
+            <div class="row-sub">JazzCash · TXN#88103</div>
+          </div>
+          <div class="row-amount">Rs. 12,000</div>
+          <div class="row-actions">
+            <button class="action-btn" title="Approve" onclick="approvePayment(this)">✅</button>
+            <button class="action-btn del" title="Reject">✕</button>
+          </div>
+        </div>
+        <div class="admin-table-row">
+          <div>
+            <div class="row-name">Bilal Raza</div>
+            <div class="row-sub">Bank Transfer · TXN#33571</div>
+          </div>
+          <div class="row-amount">Rs. 48,000</div>
+          <div class="row-actions">
+            <button class="action-btn" title="Approve" onclick="approvePayment(this)">✅</button>
+            <button class="action-btn del" title="Reject">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="spacer"></div>
+  </div>
+
+</div><!-- end app-container -->
+
+<!-- ============================================================
+     BOTTOM NAVIGATION
+============================================================ -->
+<div class="bottom-nav">
+  <button class="nav-item active" id="nav-home" onclick="navigate('home')">
+    <div class="nav-indicator"></div>
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label">Home</span>
+  </button>
+  <button class="nav-item" id="nav-portfolio" onclick="navigate('portfolio')">
+    <div class="nav-indicator"></div>
+    <span class="nav-icon">🎨</span>
+    <span class="nav-label">Portfolio</span>
+  </button>
+  <button class="nav-item" id="nav-orders" onclick="navigate('orders')">
+    <div class="nav-indicator"></div>
+    <span class="nav-icon">📦</span>
+    <span class="nav-label">Track</span>
+  </button>
+  <button class="nav-item" id="nav-notifications" onclick="navigate('notifications')" style="position:relative">
+    <div class="nav-indicator"></div>
+    <span class="nav-icon">🔔</span>
+    <span class="nav-label">Alerts</span>
+    <span class="nav-badge">2</span>
+  </button>
+  <button class="nav-item" id="nav-profile" onclick="navigate('profile')">
+    <div class="nav-indicator"></div>
+    <span class="nav-icon">👤</span>
+    <span class="nav-label">Profile</span>
+  </button>
+</div>
+
+<!-- FAB WhatsApp -->
+<button class="fab-whatsapp" onclick="window.open('https://wa.me/923001234567','_blank')">
+  💬
+  <div class="fab-tooltip">Chat on WhatsApp</div>
+</button>
+
+<!-- ============================================================
+     MODAL: Order Detail
+============================================================ -->
+<div class="modal-overlay" id="orderModal" onclick="closeModal('orderModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📦 Order Details</div>
+    <div style="background:var(--glass);border:1px solid var(--border-accent);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">#ORD-2024-001</div>
+      <div style="font-size:18px;font-weight:800;color:var(--text-primary);">E-Commerce Mobile App</div>
+      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+        <span class="tag">React Native</span>
+        <span class="tag">Firebase</span>
+        <span class="tag">Node.js</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Total Budget</div>
+        <div style="font-size:20px;font-weight:800;color:var(--accent-success);">$2,400</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Deadline</div>
+        <div style="font-size:20px;font-weight:800;color:var(--accent-2);">Dec 20</div>
+      </div>
+    </div>
+    <div class="progress-label" style="margin-bottom:6px;"><span style="font-size:13px;color:var(--text-secondary);font-weight:600;">Overall Progress</span><span style="font-size:13px;color:var(--accent-1);font-weight:700;">65%</span></div>
+    <div class="progress-bar" style="height:10px;margin-bottom:16px;"><div class="progress-fill" style="width:65%;"></div></div>
+    <button class="btn-primary" onclick="navigate('orders');closeModal('orderModal')">📍 Track This Order</button>
+    <button class="btn-secondary" onclick="closeModal('orderModal')">Close</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Payment
+============================================================ -->
+<div class="modal-overlay" id="paymentModal" onclick="closeModal('paymentModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="paymentModalTitle">💳 Submit Payment</div>
+    <div id="paymentModalContent"></div>
+    <button class="btn-primary" style="margin-top:10px;" onclick="closeModal('paymentModal');showUploadSuccess()">✅ Submit Payment Proof</button>
+    <button class="btn-secondary" onclick="closeModal('paymentModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Portfolio Preview
+============================================================ -->
+<div class="modal-overlay" id="portfolioModal" onclick="closeModal('portfolioModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="portfolioModalTitle">🌐 Project Preview</div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);height:220px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;margin-bottom:16px;">
+      <span style="font-size:48px;" id="portfolioModalIcon">🛒</span>
+      <div style="font-size:13px;color:var(--text-muted);text-align:center;">Live iframe preview embedded here<br>in the full production app</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;" id="portfolioTags"></div>
+    <button class="btn-primary" onclick="closeModal('portfolioModal')">Close Preview</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: Admin Section
+============================================================ -->
+<div class="modal-overlay" id="adminModal" onclick="closeModal('adminModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="adminModalTitle">⚙️ Admin Section</div>
+    <div id="adminModalContent" style="text-align:center;padding:20px;color:var(--text-muted);">
+      <span style="font-size:48px;display:block;margin-bottom:12px;" id="adminModalIcon">📦</span>
+      <div style="font-size:14px;line-height:1.6;" id="adminModalDesc">Full CRUD interface available in the production admin panel.</div>
+    </div>
+    <button class="btn-primary" onclick="closeModal('adminModal')">Got it!</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+  /* ---------- Theme ---------- */
+  let currentTheme = 'dark';
+
+  function toggleTheme() {
+    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    document.getElementById('themeToggle').textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+    localStorage.setItem('theme', currentTheme);
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme');
+    if (saved) {
+      currentTheme = saved;
+      document.documentElement.setAttribute('data-theme', saved);
+      document.getElementById('themeToggle').textContent = saved === 'dark' ? '🌙' : '☀️';
+    }
+  })();
+
+  /* ---------- Navigation ---------- */
+  let currentScreen = 'home';
+
+  function navigate(screen) {
+    // Hide all screens
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    // Remove nav active
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    // Map screen to nav id
+    const navMap = {
+      home: 'nav-home',
+      portfolio: 'nav-portfolio',
+      orders: 'nav-orders',
+      notifications: 'nav-notifications',
+      profile: 'nav-profile',
+      admin: 'nav-profile'
+    };
+
+    // Show screen
+    const el = document.getElementById('screen-' + screen);
+    if (el) {
+      el.classList.add('active');
+      el.classList.remove('fade-in');
+      void el.offsetWidth; // reflow
+      el.classList.add('fade-in');
+    }
+
+    // Activate nav
+    const navEl = document.getElementById(navMap[screen]);
+    if (navEl) navEl.classList.add('active');
+
+    currentScreen = screen;
+
+    // Scroll to top
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- Modals ---------- */
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function openOrderModal() {
+    openModal('orderModal');
+  }
+
+  function openPaymentModal(method) {
+    document.getElementById('paymentModalTitle').textContent = '💳 ' + method + ' Payment';
+    const icons = {
+      'Bank Transfer': '🏦', 'EasyPaisa': '📱', 'JazzCash': '💛', 'Crypto USDT': '₿'
+    };
+    document.getElementById('paymentModalContent').innerHTML = `
+      <div style="background:var(--glass);border:1px solid var(--border-accent);border-radius:var(--radius-sm);padding:16px;margin-bottom:14px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:8px;">${icons[method] || '💳'}</div>
+        <div style="font-size:14px;color:var(--text-secondary);font-weight:600;">${method}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Send to: +92 300-1234567</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="form-label" style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Transaction ID</label>
+        <input class="form-input" type="text" placeholder="Enter your transaction ID" style="width:100%;padding:12px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:14px;outline:none;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="form-label" style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Amount (PKR)</label>
+        <input class="form-input" type="number" placeholder="e.g. 15000" style="width:100%;padding:12px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:14px;outline:none;">
+      </div>
+    `;
+    openModal('paymentModal');
+  }
+
+  const portfolioData = {
+    'E-Commerce App': { icon: '🛒', tags: ['React Native', 'Firebase', 'Stripe'] },
+    'SaaS Dashboard': { icon: '📊', tags: ['Next.js', 'PostgreSQL', 'D3.js'] },
+    'Food Delivery': { icon: '🍔', tags: ['Flutter', 'Node.js', 'Google Maps'] },
+    'Real Estate': { icon: '🏠', tags: ['Vue.js', 'Laravel', 'AWS'] },
+  };
+
+  function openPortfolioModal(name) {
+    const data = portfolioData[name] || { icon: '🌐', tags: ['Web', 'Mobile'] };
+    document.getElementById('portfolioModalTitle').textContent = '🌐 ' + name;
+    document.getElementById('portfolioModalIcon').textContent = data.icon;
+    document.getElementById('portfolioTags').innerHTML = data.tags.map(t => `<span class="tag">${t}</span>`).join('');
+    openModal('portfolioModal');
+  }
+
+  const adminSections = {
+    users: { icon: '👥', desc: 'Full user management: create, edit, suspend, delete accounts. Assign roles and loyalty points.' },
+    orders: { icon: '📦', desc: 'View all client orders, update status, add comments, and manage delivery timelines.' },
+    payments: { icon: '💰', desc: 'Revenue dashboard: approve/reject payments, view receipts, track monthly earnings.' },
+    tickets: { icon: '🎫', desc: 'Support ticket queue: respond, escalate, and resolve client issues.' },
+    portfolio: { icon: '🎨', desc: 'Add/edit/remove portfolio projects with iframe URLs, tags, and categories.' },
+    notify: { icon: '📢', desc: 'Send broadcast or targeted push notifications to individual users or all clients.' },
+  };
+
+  function openAdminSection(section) {
+    const data = adminSections[section] || { icon: '⚙️', desc: 'Admin section' };
+    document.getElementById('adminModalTitle').textContent = data.icon + ' Admin: ' + section.charAt(0).toUpperCase() + section.slice(1);
+    document.getElementById('adminModalIcon').textContent = data.icon;
+    document.getElementById('adminModalDesc').textContent = data.desc;
+    openModal('adminModal');
+  }
+
+  /* ---------- Maintenance ---------- */
+  function toggleMaintenance(btn) {
+    btn.classList.toggle('on');
+    if (btn.classList.contains('on')) {
+      document.getElementById('maintenance-screen').classList.add('show');
+    }
+  }
+
+  /* ---------- Upload ---------- */
+  function showUploadSuccess() {
+    document.getElementById('uploadSuccess').style.display = 'block';
+    setTimeout(() => document.getElementById('uploadSuccess').style.display = 'none', 4000);
+  }
+
+  /* ---------- Payment Approval ---------- */
+  function approvePayment(btn) {
+    const row = btn.closest('.admin-table-row');
+    row.style.opacity = '0.5';
+    row.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => row.remove(), 300);
+    // Show toast
+    showToast('✅ Payment approved successfully!');
+  }
+
+  /* ---------- Toast ---------- */
+  function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.textContent = msg;
+    Object.assign(toast.style, {
+      position: 'fixed', bottom: '100px', left: '50%',
+      transform: 'translateX(-50%)',
+      background: 'var(--gradient-brand)',
+      color: '#fff', padding: '12px 24px',
+      borderRadius: '25px', fontSize: '13px',
+      fontWeight: '700', zIndex: '9999',
+      boxShadow: '0 4px 20px rgba(124,58,237,0.5)',
+      transition: 'all 0.3s ease',
+      whiteSpace: 'nowrap',
+      maxWidth: '90vw',
+    });
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+  }
+
+  /* ---------- Swipe Navigation ---------- */
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX, { passive: true });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 80) {
+      const screens = ['home', 'portfolio', 'orders', 'notifications', 'profile'];
+      const idx = screens.indexOf(currentScreen);
+      if (diff > 0 && idx < screens.length - 1) navigate(screens[idx + 1]);
+      if (diff < 0 && idx > 0) navigate(screens[idx - 1]);
+    }
+  }, { passive: true });
+
+  /* ---------- Progress bars animate on load ---------- */
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.progress-fill').forEach(el => {
+      const w = el.style.width;
+      el.style.width = '0';
+      requestAnimationFrame(() => {
+        setTimeout(() => el.style.width = w, 100);
+      });
+    });
+  });
+</script>
+</body>
+</html>
