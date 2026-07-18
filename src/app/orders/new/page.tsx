@@ -1,441 +1,394 @@
 "use client";
 
-import { useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AppLayout from "@/components/AppLayout";
-import TopHeader from "@/components/TopHeader";
-import { useAuth } from "@/contexts/AuthContext";
-import { createOrder } from "@/lib/firestore-helpers";
+import { motion } from "framer-motion";
+import { ArrowLeft, Upload, X, DollarSign, Calendar, FileText } from "lucide-react";
+import Link from "next/link";
+import AppShell from "@/components/layout/AppShell";
+import { useAuth } from "@/context/AuthContext";
+import {
+  createOrder,
+  getPaymentMethods,
+  type PaymentMethod,
+} from "@/lib/firestore";
+import { uploadOrderAttachment } from "@/lib/storage";
 import toast from "react-hot-toast";
-import type { Order } from "@/types";
-
-const PROJECT_TYPES = [
-  "Mobile App (iOS/Android)",
-  "Web Application",
-  "SaaS Platform",
-  "E-Commerce Store",
-  "Admin Dashboard",
-  "API / Backend",
-  "UI/UX Design",
-  "Other",
-];
-
-const BUDGET_RANGES = [
-  "< $500",
-  "$500 – $1,000",
-  "$1,000 – $3,000",
-  "$3,000 – $5,000",
-  "$5,000 – $10,000",
-  "$10,000+",
-];
 
 export default function NewOrderPage() {
-  const { user, appUser } = useAuth();
+  const { user, profile } = useAuth();
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const [formData, setFormData] = useState({
-    title: "",
-    projectType: "",
-    description: "",
-    budgetRange: "",
-    deadline: "",
-    tags: [] as string[],
-    tagInput: "",
-  });
-  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
-  const updateField = (key: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    budget: "",
+    deadline: "",
+    paymentMethod: "",
+  });
 
-  const addTag = () => {
-    const t = formData.tagInput.trim();
-    if (t && !formData.tags.includes(t)) {
-      setFormData((prev) => ({
-        ...prev,
-        tags: [...prev.tags, t],
-        tagInput: "",
-      }));
+  useEffect(() => {
+    getPaymentMethods()
+      .then((methods) => {
+        setPaymentMethods(
+          methods.length > 0
+            ? methods
+            : [
+                {
+                  id: "jc",
+                  name: "JazzCash",
+                  type: "jazzcash",
+                  accountNumber: "0300-1234567",
+                  accountTitle: "DigitalSpot Agency",
+                  isActive: true,
+                  instructions: "Send to JazzCash number and upload screenshot",
+                },
+                {
+                  id: "ep",
+                  name: "EasyPaisa",
+                  type: "easypaisa",
+                  accountNumber: "0333-1234567",
+                  accountTitle: "DigitalSpot Agency",
+                  isActive: true,
+                  instructions: "Send to EasyPaisa and upload receipt",
+                },
+                {
+                  id: "bt",
+                  name: "Bank Transfer",
+                  type: "bank",
+                  accountNumber: "PK36MEZN0001234567890",
+                  accountTitle: "DigitalSpot Agency",
+                  bankName: "Meezan Bank",
+                  isActive: true,
+                  instructions: "Transfer to bank account and send receipt",
+                },
+              ]
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  const update = (k: keyof typeof form, v: string) =>
+    setForm((prev) => ({ ...prev, [k]: v }));
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    const valid = files.filter((f) => f.size <= 10 * 1024 * 1024);
+    if (valid.length < files.length) {
+      toast.error("Some files exceed 10MB limit and were skipped.");
     }
+    setAttachments((prev) => [...prev, ...valid].slice(0, 5));
   };
 
-  const removeTag = (tag: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      tags: prev.tags.filter((t) => t !== tag),
-    }));
+  const removeFile = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const parseBudget = (range: string): number => {
-    if (range.includes("<")) return 499;
-    if (range.includes("10,000+")) return 10000;
-    const nums = range.match(/\d+/g);
-    if (nums && nums.length >= 2)
-      return Math.round((parseInt(nums[0]) + parseInt(nums[1])) / 2);
-    return 1000;
-  };
-
-  const handleSubmit = async () => {
-    if (!user || !appUser) return;
-    if (!formData.title || !formData.projectType || !formData.description) {
-      toast.error("Please fill in all required fields");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !profile) {
+      toast.error("Please sign in to place an order.");
       return;
     }
+    if (!form.title || !form.description || !form.budget || !form.deadline) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const orderData: Omit<Order, "id" | "createdAt" | "updatedAt"> = {
-        clientId: user.uid,
-        clientName: appUser.displayName,
-        clientEmail: appUser.email,
-        title: formData.title,
-        description: `${formData.projectType}\n\n${formData.description}`,
-        budget: parseBudget(formData.budgetRange),
-        currency: "USD",
+      // Create order first to get the ID
+      const orderId = await createOrder({
+        title: form.title,
+        description: form.description,
+        budget: Number(form.budget),
+        deadline: form.deadline,
         status: "pending",
-        progress: 0,
-        deadline: formData.deadline || undefined,
-        tags: [formData.projectType, ...formData.tags].filter(Boolean),
+        stage: "requirements",
+        clientId: user.uid,
+        clientName: profile.displayName,
+        clientEmail: profile.email,
+        paymentStatus: "unpaid",
+        paymentMethod: form.paymentMethod || undefined,
         attachments: [],
-        comments: [],
-      };
-      const id = await createOrder(orderData);
-      toast.success("Order submitted successfully! 🚀");
-      router.replace(`/orders/${id}`);
+      });
+
+      // Upload attachments if any
+      if (attachments.length > 0) {
+        setUploadingFiles(true);
+        const urls: string[] = [];
+        for (const file of attachments) {
+          try {
+            const url = await uploadOrderAttachment(file, orderId);
+            urls.push(url);
+          } catch {
+            toast.error(`Failed to upload ${file.name}`);
+          }
+        }
+        setUploadingFiles(false);
+        // Note: In production, update order with attachment URLs
+      }
+
+      toast.success("Order placed successfully! 🎉");
+      router.push(`/orders/${orderId}`);
     } catch {
-      toast.error("Failed to submit order. Please try again.");
+      toast.error("Failed to place order. Please try again.");
     } finally {
       setLoading(false);
+      setUploadingFiles(false);
     }
   };
 
+  const selectedMethod = paymentMethods.find(
+    (m) => m.id === form.paymentMethod
+  );
+
   return (
-    <AppLayout>
-      <TopHeader title="New Order ➕" showBack backHref="/orders" />
+    <AppShell>
+      <div className="px-3 pt-4 pb-8">
+        {/* Back */}
+        <Link
+          href="/orders"
+          className="flex items-center gap-2 text-slate-400 text-sm mb-5 hover:text-indigo-400 transition-colors"
+        >
+          <ArrowLeft size={16} /> Back to Orders
+        </Link>
 
-      <main className="page-content animate-fade-in">
-        {/* Steps indicator */}
-        <div className="px-5 pt-5 mb-5">
-          <div className="flex items-center gap-3">
-            {[1, 2, 3].map((s) => (
-              <div key={s} className="flex items-center gap-3 flex-1">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                    s <= step
-                      ? "bg-gradient-to-br from-violet-600 to-cyan-500 text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]"
-                      : "bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-muted)]"
-                  }`}
-                >
-                  {s < step ? "✓" : s}
-                </div>
-                {s < 3 && (
-                  <div
-                    className={`flex-1 h-0.5 rounded ${
-                      s < step
-                        ? "bg-gradient-to-r from-violet-600 to-cyan-500"
-                        : "bg-[var(--border)]"
-                    }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-2">
-            {["Project Info", "Requirements", "Review"].map((l, i) => (
-              <p
-                key={l}
-                className={`text-[10px] font-semibold uppercase tracking-wide ${
-                  i + 1 <= step ? "text-violet-400" : "text-[var(--text-muted)]"
-                }`}
-              >
-                {l}
-              </p>
-            ))}
-          </div>
-        </div>
+        <h1 className="text-xl font-black text-slate-900 dark:text-white mb-1">
+          🆕 New Order
+        </h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
+          Fill in the details and our team will get back to you within 24 hours.
+        </p>
 
-        {/* Step 1: Project Info */}
-        {step === 1 && (
-          <div className="px-5 flex flex-col gap-4 animate-fade-in">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Title */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+              <FileText size={12} /> Project Title *
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., E-Commerce Website with Admin Panel"
+              value={form.title}
+              onChange={(e) => update("title", e.target.value)}
+              className="input-glass"
+              required
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
+              📝 Project Description *
+            </label>
+            <textarea
+              placeholder="Describe your project in detail. Include features, design preferences, target audience, etc."
+              value={form.description}
+              onChange={(e) => update("description", e.target.value)}
+              className="input-glass resize-none"
+              rows={5}
+              required
+            />
+          </div>
+
+          {/* Budget & Deadline */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                Project Title *
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                <DollarSign size={12} /> Budget (USD) *
               </label>
               <input
-                type="text"
-                className="form-input"
-                placeholder="e.g. My E-Commerce App"
-                value={formData.title}
-                onChange={(e) => updateField("title", e.target.value)}
+                type="number"
+                placeholder="e.g., 2500"
+                value={form.budget}
+                onChange={(e) => update("budget", e.target.value)}
+                className="input-glass"
+                min="1"
+                required
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                Project Type *
-              </label>
-              <select
-                className="form-select"
-                value={formData.projectType}
-                onChange={(e) => updateField("projectType", e.target.value)}
-              >
-                <option value="">Select type...</option>
-                {PROJECT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                Budget Range
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {BUDGET_RANGES.map((b) => (
-                  <button
-                    key={b}
-                    onClick={() => updateField("budgetRange", b)}
-                    className={`py-2.5 text-xs font-semibold rounded-xl border transition-all ${
-                      formData.budgetRange === b
-                        ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white border-transparent"
-                        : "bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)] hover:border-violet-500/50"
-                    }`}
-                  >
-                    {b}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                Preferred Deadline
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                <Calendar size={12} /> Deadline *
               </label>
               <input
                 type="date"
-                className="form-input"
-                value={formData.deadline}
-                onChange={(e) => updateField("deadline", e.target.value)}
+                value={form.deadline}
+                onChange={(e) => update("deadline", e.target.value)}
+                className="input-glass"
+                required
               />
             </div>
-            <button
-              className="btn-primary mt-2"
-              onClick={() => {
-                if (!formData.title || !formData.projectType) {
-                  toast.error("Please fill required fields");
-                  return;
-                }
-                setStep(2);
-              }}
+          </div>
+
+          {/* File Upload */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block">
+              📎 Attachments (Optional)
+            </label>
+            <label
+              className="border border-dashed border-white/20 rounded-xl p-5 flex flex-col items-center gap-2 cursor-pointer hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all"
+              htmlFor="file-upload"
             >
-              Next: Requirements →
-            </button>
-          </div>
-        )}
+              <Upload size={22} className="text-slate-400" />
+              <p className="text-xs text-slate-400 text-center">
+                Drop files here or{" "}
+                <span className="text-indigo-400 font-semibold">browse</span>
+              </p>
+              <p className="text-[10px] text-slate-500">
+                Images, PDFs, Docs · Max 10MB each · Up to 5 files
+              </p>
+            </label>
+            <input
+              id="file-upload"
+              type="file"
+              multiple
+              accept="image/*,.pdf,.doc,.docx"
+              onChange={handleFileChange}
+              className="hidden"
+            />
 
-        {/* Step 2: Requirements */}
-        {step === 2 && (
-          <div className="px-5 flex flex-col gap-4 animate-fade-in">
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                Project Description *
-              </label>
-              <textarea
-                className="form-textarea"
-                rows={5}
-                placeholder="Describe your project in detail. Include features, target audience, reference apps you like, and any specific requirements..."
-                value={formData.description}
-                onChange={(e) => updateField("description", e.target.value)}
-                style={{ minHeight: "140px" }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                Tech Stack / Keywords (optional)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  className="form-input flex-1"
-                  placeholder="e.g. React Native"
-                  value={formData.tagInput}
-                  onChange={(e) => updateField("tagInput", e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addTag()}
-                />
-                <button
-                  onClick={addTag}
-                  className="px-4 bg-violet-600 text-white rounded-xl font-semibold text-sm hover:bg-violet-500 transition-colors"
-                >
-                  +
-                </button>
-              </div>
-              {formData.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="flex items-center gap-1 tag cursor-pointer hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400"
-                      onClick={() => removeTag(tag)}
-                    >
-                      {tag} <span className="text-[var(--text-muted)]">×</span>
+            {/* File Preview */}
+            {attachments.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {attachments.map((file, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 p-2 rounded-xl bg-white/5 border border-white/10"
+                  >
+                    <span className="text-sm">
+                      {file.type.startsWith("image/") ? "🖼️" : "📄"}
                     </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* File upload */}
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                Attachments (optional)
-              </label>
-              <div
-                className="border-2 border-dashed border-[var(--border)] rounded-2xl p-6 text-center cursor-pointer hover:border-violet-500/50 hover:bg-violet-500/5 transition-all"
-                onClick={() => fileRef.current?.click()}
-              >
-                <input
-                  ref={fileRef}
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx"
-                  className="hidden"
-                  onChange={(e) =>
-                    setFiles(Array.from(e.target.files ?? []))
-                  }
-                />
-                <p className="text-3xl mb-2">📎</p>
-                <p className="text-sm font-semibold text-[var(--text-secondary)]">
-                  Upload Requirements / References
-                </p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                  Images, PDFs, Docs — Max 10MB each
-                </p>
-              </div>
-              {files.length > 0 && (
-                <div className="mt-2 flex flex-col gap-1">
-                  {files.map((f, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-2 text-xs text-[var(--text-secondary)] bg-[var(--bg-card)] border border-[var(--border)] rounded-lg px-3 py-2"
+                    <span className="text-xs text-slate-300 flex-1 truncate">
+                      {file.name}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {(file.size / 1024).toFixed(0)}KB
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="text-slate-500 hover:text-red-400 transition-colors"
                     >
-                      <span>📄</span>
-                      <span className="flex-1 truncate">{f.name}</span>
-                      <span className="text-[var(--text-muted)]">
-                        {(f.size / 1024).toFixed(0)} KB
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3 mt-2">
-              <button
-                className="btn-secondary flex-1"
-                style={{ width: "auto" }}
-                onClick={() => setStep(1)}
-              >
-                ← Back
-              </button>
-              <button
-                className="btn-primary flex-1"
-                style={{ width: "auto" }}
-                onClick={() => {
-                  if (!formData.description) {
-                    toast.error("Please describe your project");
-                    return;
-                  }
-                  setStep(3);
-                }}
-              >
-                Review →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Review */}
-        {step === 3 && (
-          <div className="px-5 flex flex-col gap-4 animate-fade-in">
-            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5">
-              <h3 className="font-bold text-[var(--text-primary)] mb-4 text-lg">
-                Order Summary
-              </h3>
-              {[
-                { label: "Project", value: formData.title },
-                { label: "Type", value: formData.projectType },
-                { label: "Budget", value: formData.budgetRange || "TBD" },
-                {
-                  label: "Deadline",
-                  value: formData.deadline
-                    ? new Date(formData.deadline).toLocaleDateString()
-                    : "Flexible",
-                },
-                {
-                  label: "Attachments",
-                  value: `${files.length} file(s)`,
-                },
-              ].map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="flex justify-between py-2.5 border-b border-[var(--border)] last:border-0"
-                >
-                  <span className="text-sm text-[var(--text-muted)] font-medium">
-                    {label}
-                  </span>
-                  <span className="text-sm font-semibold text-[var(--text-primary)] max-w-[60%] text-right">
-                    {value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5">
-              <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">
-                Description
-              </p>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                {formData.description}
-              </p>
-            </div>
-
-            {formData.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {formData.tags.map((tag) => (
-                  <span key={tag} className="tag">
-                    {tag}
-                  </span>
+                      <X size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
-
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm text-amber-300">
-              ⚡ Our team will review your order and get back to you within{" "}
-              <strong>24 hours</strong>.
-            </div>
-
-            <div className="flex gap-3 mt-2">
-              <button
-                className="btn-secondary flex-1"
-                style={{ width: "auto" }}
-                onClick={() => setStep(2)}
-              >
-                ← Back
-              </button>
-              <button
-                className="btn-primary flex-1"
-                style={{ width: "auto" }}
-                onClick={handleSubmit}
-                disabled={loading}
-              >
-                {loading ? "Submitting..." : "🚀 Submit Order"}
-              </button>
-            </div>
           </div>
-        )}
-      </main>
-    </AppLayout>
+
+          {/* Payment Method */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 block">
+              💳 Preferred Payment Method
+            </label>
+            <div className="space-y-2">
+              {paymentMethods.map((method) => (
+                <label
+                  key={method.id}
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    form.paymentMethod === method.id
+                      ? "border-indigo-500/50 bg-indigo-500/10"
+                      : "border-white/10 bg-white/5 hover:border-white/20"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value={method.id}
+                    checked={form.paymentMethod === method.id}
+                    onChange={() => update("paymentMethod", method.id ?? "")}
+                    className="sr-only"
+                  />
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                    style={{ background: "rgba(99,102,241,0.15)" }}
+                  >
+                    {method.type === "jazzcash"
+                      ? "📲"
+                      : method.type === "easypaisa"
+                      ? "💚"
+                      : "🏦"}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {method.name}
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      {method.accountNumber}
+                    </p>
+                  </div>
+                  {form.paymentMethod === method.id && (
+                    <div
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs"
+                      style={{ background: "#6366f1" }}
+                    >
+                      ✓
+                    </div>
+                  )}
+                </label>
+              ))}
+            </div>
+
+            {/* Payment Instructions */}
+            {selectedMethod && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="mt-2 p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5"
+              >
+                <p className="text-xs font-semibold text-indigo-400 mb-1">
+                  💡 Payment Instructions
+                </p>
+                <p className="text-xs text-slate-400">
+                  {selectedMethod.instructions}
+                </p>
+                {selectedMethod.bankName && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Bank: {selectedMethod.bankName}
+                  </p>
+                )}
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Account Title: {selectedMethod.accountTitle}
+                </p>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Submit */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            type="submit"
+            disabled={loading || uploadingFiles}
+            className="w-full py-3.5 rounded-xl text-white text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+            style={{
+              background: "linear-gradient(135deg, #6366f1, #ec4899)",
+              boxShadow: "0 4px 20px rgba(99,102,241,0.3)",
+            }}
+          >
+            {loading || uploadingFiles ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                {uploadingFiles ? "Uploading files..." : "Placing Order..."}
+              </>
+            ) : (
+              "🚀 Place Order"
+            )}
+          </motion.button>
+
+          <p className="text-center text-[10px] text-slate-500">
+            By placing an order, you agree to our Terms of Service. Our team
+            will review and respond within 24 hours.
+          </p>
+        </form>
+      </div>
+    </AppShell>
   );
 }

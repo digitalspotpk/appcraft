@@ -1,29 +1,26 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+/**
+ * Firebase v9 Modular SDK Configuration
+ * AppCraft by DigitalSpot — Agency Portal
+ */
 
-// Values are read from env vars (see .env.local). Falling back to the
-// project's own public config keeps local dev working even if the
-// .env.local file is ever missing — these are NOT secret values, Firebase
-// web API keys are safe to expose in client bundles by design.
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
+
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "AIzaSyCiJHnvcGognB3AplEWOOG3g1DVn698N0Y",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "appcraft-95bf6.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "appcraft-95bf6",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "appcraft-95bf6.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "136186013951",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "1:136186013951:web:34b5752914653a412284ca",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "demo-api-key",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "demo.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "demo-project",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "demo-project.appspot.com",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "123456789",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "1:123456789:web:abcdef",
 };
 
-// Initialize Firebase (singleton pattern)
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// Prevent re-initialization in Next.js hot-reload
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-// NOTE: Firebase Storage is intentionally NOT initialized here. Cloud
-// Storage now requires the project to be on the Blaze (pay-as-you-go)
-// billing plan, even for free-tier usage. To keep this app 100% free on
-// the Spark plan, receipt images are compressed and stored as base64
-// strings directly inside Firestore documents instead (see
-// `uploadReceipt` in firestore-helpers.ts).
-export default app;
+export { app, auth, db, storage };

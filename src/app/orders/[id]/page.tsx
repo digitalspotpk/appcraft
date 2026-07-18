@@ -1,422 +1,794 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import AppLayout from "@/components/AppLayout";
-import TopHeader from "@/components/TopHeader";
-import OrderStepper from "@/components/OrderStepper";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useEffect, useState, useRef } from "react";
+import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Send,
+  Upload,
+  CheckCircle,
+  Clock,
+  Check,
+  X,
+} from "lucide-react";
+import AppShell from "@/components/layout/AppShell";
+import GlassCard from "@/components/ui/GlassCard";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { useAuth } from "@/context/AuthContext";
 import {
   getOrder,
-  addOrderComment,
-  submitPayment,
-  uploadReceipt,
-} from "@/lib/firestore-helpers";
+  subscribeToComments,
+  addComment,
+  getPaymentMethods,
+  type Order,
+  type Comment,
+  type PaymentMethod,
+} from "@/lib/firestore";
+import { uploadReceipt } from "@/lib/storage";
 import toast from "react-hot-toast";
-import type { Order } from "@/types";
 
-const PAYMENT_METHODS = [
-  { id: "bank_transfer", name: "Bank Transfer", icon: "🏦", color: "from-blue-700 to-blue-500", desc: "HBL · Account ending 4521" },
-  { id: "easypaisa", name: "EasyPaisa", icon: "📱", color: "from-emerald-800 to-emerald-500", desc: "+92 300-1234567" },
-  { id: "jazzcash", name: "JazzCash", icon: "💛", color: "from-amber-800 to-amber-500", desc: "+92 311-7654321" },
-  { id: "crypto", name: "Crypto (USDT/TRC-20)", icon: "₿", color: "from-violet-700 to-cyan-500", desc: "TRC-20 Network" },
-] as const;
+// ─── STAGES ────────────────────────────────────────────────────────────────
+const STAGES = [
+  {
+    key: "requirements",
+    label: "Requirements",
+    desc: "Gathering project requirements",
+    icon: "📋",
+  },
+  {
+    key: "design",
+    label: "UI/UX Design",
+    desc: "Wireframes and design mockups",
+    icon: "🎨",
+  },
+  {
+    key: "development",
+    label: "Development",
+    desc: "Building frontend & backend",
+    icon: "⚡",
+  },
+  {
+    key: "testing",
+    label: "Testing & QA",
+    desc: "Unit tests and quality checks",
+    icon: "🔬",
+  },
+  {
+    key: "delivery",
+    label: "Delivery",
+    desc: "Final handover & deployment",
+    icon: "🚀",
+  },
+];
 
-export default function OrderDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const { user, appUser, isAdmin } = useAuth();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [commentText, setCommentText] = useState("");
-  const [posting, setPosting] = useState(false);
-  const [activeTab, setActiveTab] = useState<"track" | "comments" | "payment">("track");
-  const [paymentModal, setPaymentModal] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<string>("");
-  const [txnId, setTxnId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [submittingPayment, setSubmittingPayment] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+const STAGE_INDEX: Record<string, number> = {
+  requirements: 0,
+  design: 1,
+  development: 2,
+  testing: 3,
+  delivery: 4,
+};
 
-  const loadOrder = useCallback(async () => {
+// ─── DEMO DATA ──────────────────────────────────────────────────────────────
+const DEMO_ORDER: Order = {
+  id: "demo1",
+  title: "E-Commerce Platform",
+  description:
+    "Full-stack e-commerce platform with product catalog, cart, checkout, Stripe integration, and admin dashboard.",
+  budget: 2400,
+  deadline: "Dec 30, 2024",
+  status: "active",
+  stage: "development",
+  clientId: "demo",
+  clientName: "Ahmed Hassan",
+  clientEmail: "ahmed@demo.com",
+  paymentStatus: "paid",
+  paymentMethod: "jazzcash",
+};
+
+const DEMO_COMMENTS: Comment[] = [
+  {
+    id: "c1",
+    orderId: "demo1",
+    authorId: "admin",
+    authorName: "DigitalSpot Team",
+    authorRole: "admin",
+    message:
+      "Homepage design is completed! Please review the Figma link shared via email and approve before we proceed.",
+  },
+  {
+    id: "c2",
+    orderId: "demo1",
+    authorId: "demo",
+    authorName: "Ahmed Hassan",
+    authorRole: "client",
+    message:
+      "Looks amazing! Approved ✅ Please proceed with the development phase.",
+  },
+];
+
+// ─── STEPPER ─────────────────────────────────────────────────────────────────
+function OrderStepper({ currentStage }: { currentStage: string }) {
+  const currentIndex = STAGE_INDEX[currentStage] ?? 0;
+
+  return (
+    <GlassCard className="p-4" animate={false}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+          🔄 Progress Tracker
+        </h3>
+        <span
+          className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+          style={{
+            background: "rgba(99,102,241,0.15)",
+            color: "#818cf8",
+            border: "1px solid rgba(99,102,241,0.3)",
+          }}
+        >
+          Step {currentIndex + 1} of 5
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-0">
+        {STAGES.map((stage, i) => {
+          const isDone = i < currentIndex;
+          const isActive = i === currentIndex;
+          const isPending = i > currentIndex;
+
+          return (
+            <div key={stage.key} className="flex gap-3 items-start">
+              {/* Dot + Connector */}
+              <div className="flex flex-col items-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: i * 0.1 }}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
+                    isDone
+                      ? "text-white"
+                      : isActive
+                      ? "border-2 border-indigo-500"
+                      : "border-2 border-white/10"
+                  }`}
+                  style={
+                    isDone
+                      ? {
+                          background:
+                            "linear-gradient(135deg, #6366f1, #ec4899)",
+                          boxShadow: "0 0 12px rgba(99,102,241,0.4)",
+                        }
+                      : isActive
+                      ? { background: "rgba(99,102,241,0.15)" }
+                      : { background: "rgba(255,255,255,0.05)" }
+                  }
+                >
+                  {isDone ? (
+                    <Check size={14} />
+                  ) : isActive ? (
+                    <motion.span
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      className="text-indigo-400 text-base"
+                    >
+                      ⚡
+                    </motion.span>
+                  ) : (
+                    <span className="text-slate-500 text-sm">{stage.icon}</span>
+                  )}
+                </motion.div>
+                {i < STAGES.length - 1 && (
+                  <div
+                    className="w-0.5 h-6 mt-0.5 rounded-full"
+                    style={{
+                      background: isDone
+                        ? "linear-gradient(180deg, #6366f1, rgba(99,102,241,0.3))"
+                        : "rgba(255,255,255,0.08)",
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="pb-5 flex-1 pt-1">
+                <p
+                  className={`text-sm font-semibold ${
+                    isDone
+                      ? "text-slate-900 dark:text-white"
+                      : isActive
+                      ? "text-indigo-400"
+                      : "text-slate-400 dark:text-slate-500"
+                  }`}
+                >
+                  {stage.label}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">
+                  {stage.desc}
+                </p>
+                {isActive && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-[10px] text-indigo-400 mt-1 font-medium"
+                  >
+                    🔄 In Progress
+                  </motion.p>
+                )}
+                {isDone && (
+                  <p className="text-[10px] text-emerald-400 mt-1 font-medium">
+                    ✅ Completed
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </GlassCard>
+  );
+}
+
+// ─── PAYMENT SECTION ─────────────────────────────────────────────────────────
+function PaymentSection({
+  order,
+  onPaymentSubmit,
+}: {
+  order: Order;
+  onPaymentSubmit: (
+    method: string,
+    txId: string,
+    receiptUrl: string
+  ) => Promise<void>;
+}) {
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  const [selectedMethod, setSelectedMethod] = useState("");
+  const [txId, setTxId] = useState("");
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [receiptPreview, setReceiptPreview] = useState("");
+
+  useEffect(() => {
+    getPaymentMethods()
+      .then(setMethods)
+      .catch(() =>
+        setMethods([
+          {
+            id: "jc",
+            name: "JazzCash",
+            type: "jazzcash",
+            accountNumber: "0300-1234567",
+            accountTitle: "DigitalSpot",
+            isActive: true,
+            instructions: "Send to number and upload screenshot",
+          },
+          {
+            id: "ep",
+            name: "EasyPaisa",
+            type: "easypaisa",
+            accountNumber: "0333-7654321",
+            accountTitle: "DigitalSpot",
+            isActive: true,
+            instructions: "Send via EasyPaisa and upload receipt",
+          },
+        ])
+      );
+  }, []);
+
+  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Receipt image must be under 5MB.");
+      return;
+    }
+    setReceipt(file);
+    setReceiptPreview(URL.createObjectURL(file));
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedMethod || !txId) {
+      toast.error("Select payment method and enter Transaction ID.");
+      return;
+    }
+    if (!receipt) {
+      toast.error("Please upload payment receipt screenshot.");
+      return;
+    }
     setLoading(true);
     try {
-      const data = await getOrder(id);
-      if (!data) {
-        toast.error("Order not found");
-        router.replace("/orders");
-        return;
-      }
-      setOrder(data);
+      const url = await uploadReceipt(receipt, order.id ?? "");
+      await onPaymentSubmit(selectedMethod, txId, url);
+      toast.success("Payment submitted! Admin will verify shortly. ✅");
     } catch {
-      toast.error("Failed to load order");
+      toast.error("Failed to submit payment. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [id, router]);
+  };
+
+  if (order.paymentStatus === "paid") {
+    return (
+      <GlassCard className="p-4" animate={false}>
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: "rgba(16,185,129,0.15)" }}
+          >
+            <CheckCircle size={20} className="text-emerald-400" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-900 dark:text-white">
+              Payment Approved ✅
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              ${order.budget.toLocaleString()} · {order.paymentMethod}
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+    );
+  }
+
+  if (order.paymentStatus === "pending") {
+    return (
+      <GlassCard className="p-4" animate={false}>
+        <div className="flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: "rgba(245,158,11,0.15)" }}
+          >
+            <Clock size={20} className="text-amber-400" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-900 dark:text-white">
+              Payment Under Review ⏳
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Admin will verify your payment receipt shortly.
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+    );
+  }
+
+  return (
+    <GlassCard className="p-4" animate={false}>
+      <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4">
+        💳 Submit Payment
+      </h3>
+
+      {/* Method Selection */}
+      <div className="space-y-2 mb-4">
+        {methods.map((m) => (
+          <label
+            key={m.id}
+            className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+              selectedMethod === m.id
+                ? "border-indigo-500/50 bg-indigo-500/10"
+                : "border-white/10 bg-white/5"
+            }`}
+          >
+            <input
+              type="radio"
+              name="pm"
+              value={m.id}
+              checked={selectedMethod === m.id}
+              onChange={() => setSelectedMethod(m.id ?? "")}
+              className="sr-only"
+            />
+            <span className="text-xl">
+              {m.type === "jazzcash"
+                ? "📲"
+                : m.type === "easypaisa"
+                ? "💚"
+                : "🏦"}
+            </span>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-slate-900 dark:text-white">
+                {m.name}
+              </p>
+              <p className="text-[10px] text-slate-500">{m.accountNumber} · {m.accountTitle}</p>
+            </div>
+            {selectedMethod === m.id && (
+              <div
+                className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[10px]"
+                style={{ background: "#6366f1" }}
+              >
+                ✓
+              </div>
+            )}
+          </label>
+        ))}
+      </div>
+
+      {/* Transaction ID */}
+      <input
+        type="text"
+        placeholder="Transaction ID / Reference Number"
+        value={txId}
+        onChange={(e) => setTxId(e.target.value)}
+        className="input-glass mb-3 text-sm"
+      />
+
+      {/* Receipt Upload */}
+      <label
+        htmlFor="receipt-upload"
+        className={`border border-dashed rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer transition-all mb-3 ${
+          receipt
+            ? "border-emerald-500/50 bg-emerald-500/5"
+            : "border-white/20 hover:border-indigo-500/50 hover:bg-indigo-500/5"
+        }`}
+      >
+        {receiptPreview ? (
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={receiptPreview}
+              alt="Receipt"
+              className="w-full h-32 object-cover rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setReceipt(null);
+                setReceiptPreview("");
+              }}
+              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <Upload size={20} className="text-slate-400" />
+            <p className="text-xs text-slate-400">
+              Upload receipt screenshot
+            </p>
+            <p className="text-[10px] text-slate-500">PNG, JPG · Max 5MB</p>
+          </>
+        )}
+      </label>
+      <input
+        id="receipt-upload"
+        type="file"
+        accept="image/*"
+        onChange={handleReceiptChange}
+        className="hidden"
+      />
+
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={handleSubmit}
+        disabled={loading}
+        className="w-full py-3 rounded-xl text-white text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2"
+        style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
+      >
+        {loading ? (
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          "Submit Payment"
+        )}
+      </motion.button>
+    </GlassCard>
+  );
+}
+
+// ─── COMMENT THREAD ─────────────────────────────────────────────────────────
+function CommentThread({
+  orderId,
+  comments,
+  onSend,
+}: {
+  orderId: string;
+  comments: Comment[];
+  onSend: (message: string) => Promise<void>;
+}) {
+  const { user } = useAuth();
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    loadOrder();
-  }, [loadOrder]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [comments]);
 
-  const handleComment = async () => {
-    if (!commentText.trim() || !user || !appUser || !order) return;
-    setPosting(true);
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+    setSending(true);
+    const msg = message.trim();
+    setMessage("");
     try {
-      await addOrderComment(order.id, {
-        orderId: order.id,
-        authorId: user.uid,
-        authorName: appUser.displayName,
-        authorRole: isAdmin ? "admin" : "client",
-        text: commentText.trim(),
-        createdAt: new Date().toISOString(),
-      });
-      setCommentText("");
-      await loadOrder();
-      toast.success("Comment posted");
+      await onSend(msg);
     } catch {
-      toast.error("Failed to post comment");
+      toast.error("Failed to send message.");
+      setMessage(msg);
     } finally {
-      setPosting(false);
+      setSending(false);
     }
   };
 
-  const handlePaymentSubmit = async () => {
-    if (!user || !appUser || !order) return;
-    if (!selectedMethod || !txnId || !amount) {
-      toast.error("Please fill all payment fields");
+  return (
+    <GlassCard className="p-4" animate={false}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+          💬 Comment Thread
+        </h3>
+        <span
+          className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+          style={{
+            background: "rgba(99,102,241,0.15)",
+            color: "#818cf8",
+            border: "1px solid rgba(99,102,241,0.3)",
+          }}
+        >
+          {comments.length} messages
+        </span>
+      </div>
+
+      {/* Messages */}
+      <div className="space-y-3 max-h-64 overflow-y-auto mb-4 pr-1">
+        {comments.map((comment) => {
+          const isMe = comment.authorId === user?.uid;
+          const isAdmin = comment.authorRole === "admin";
+          return (
+            <motion.div
+              key={comment.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex gap-2.5 ${isMe ? "flex-row-reverse" : ""}`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
+                  isAdmin ? "bg-indigo-500/20" : "bg-emerald-500/20"
+                }`}
+              >
+                {isAdmin ? "👨‍💼" : "👤"}
+              </div>
+              <div
+                className={`flex-1 p-3 rounded-2xl ${
+                  isMe
+                    ? "rounded-tr-sm"
+                    : "rounded-tl-sm"
+                }`}
+                style={{
+                  background: isAdmin
+                    ? "rgba(99,102,241,0.1)"
+                    : "rgba(16,185,129,0.1)",
+                  border: isAdmin
+                    ? "1px solid rgba(99,102,241,0.2)"
+                    : "1px solid rgba(16,185,129,0.2)",
+                }}
+              >
+                <p
+                  className={`text-[10px] font-bold mb-1 ${
+                    isAdmin ? "text-indigo-400" : "text-emerald-400"
+                  }`}
+                >
+                  {isAdmin ? "👨‍💼 " : ""}
+                  {comment.authorName}
+                </p>
+                <p className="text-xs text-slate-300 dark:text-slate-300 leading-relaxed">
+                  {comment.message}
+                </p>
+              </div>
+            </motion.div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <form onSubmit={handleSend} className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Type a message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          className="input-glass flex-1 py-2.5 text-xs"
+        />
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          type="submit"
+          disabled={sending || !message.trim()}
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0"
+          style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
+        >
+          {sending ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Send size={15} />
+          )}
+        </motion.button>
+      </form>
+    </GlassCard>
+  );
+}
+
+// ─── MAIN PAGE ───────────────────────────────────────────────────────────────
+export default function OrderDetailPage() {
+  const params = useParams();
+  const { user, profile } = useAuth();
+  const orderId = params.id as string;
+
+  const [order, setOrder] = useState<Order | null>(null);
+  const [comments, setComments] = useState<Comment[]>(DEMO_COMMENTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (orderId === "demo1") {
+      setOrder(DEMO_ORDER);
+      setLoading(false);
       return;
     }
-    setSubmittingPayment(true);
-    try {
-      let receiptUrl: string | undefined;
-      if (receiptFile) {
-        receiptUrl = await uploadReceipt(receiptFile);
-      }
-      const method = PAYMENT_METHODS.find((m) => m.id === selectedMethod);
-      await submitPayment({
-        orderId: order.id,
-        clientId: user.uid,
-        clientName: appUser.displayName,
-        method: selectedMethod as "bank_transfer" | "easypaisa" | "jazzcash" | "crypto" | "other",
-        methodName: method?.name ?? selectedMethod,
-        amount: parseFloat(amount),
-        currency: "PKR",
-        transactionId: txnId,
-        receiptUrl,
-        status: "pending",
-        adminNote: undefined,
-        verifiedAt: undefined,
-      });
-      toast.success("Payment submitted! Admin will verify shortly. ✅");
-      setPaymentModal(false);
-      setTxnId("");
-      setAmount("");
-      setReceiptFile(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to submit payment";
-      toast.error(msg);
-    } finally {
-      setSubmittingPayment(false);
+    getOrder(orderId)
+      .then((o) => {
+        setOrder(o ?? DEMO_ORDER);
+      })
+      .catch(() => setOrder(DEMO_ORDER))
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  useEffect(() => {
+    if (!orderId || orderId === "demo1") {
+      setComments(DEMO_COMMENTS);
+      return;
     }
+    const unsub = subscribeToComments(orderId, (c) => setComments(c));
+    return unsub;
+  }, [orderId]);
+
+  const handleSendComment = async (message: string) => {
+    if (!user || !profile) return;
+    await addComment(orderId, {
+      orderId,
+      authorId: user.uid,
+      authorName: profile.displayName,
+      authorRole: profile.role,
+      message,
+    });
+  };
+
+  const handlePaymentSubmit = async (
+    method: string,
+    txId: string,
+    receiptUrl: string
+  ) => {
+    if (!order?.id) return;
+    const { updateOrder } = await import("@/lib/firestore");
+    await updateOrder(order.id, {
+      paymentStatus: "pending",
+      paymentMethod: method,
+      transactionId: txId,
+      receiptUrl,
+    });
+    setOrder((prev) => prev ? { ...prev, paymentStatus: "pending" } : null);
   };
 
   if (loading) {
     return (
-      <AppLayout>
-        <TopHeader title="Order Details" showBack backHref="/orders" />
-        <div className="px-5 pt-5 flex flex-col gap-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="skeleton h-24 rounded-2xl" />
-          ))}
+      <AppShell>
+        <div className="flex items-center justify-center py-20">
+          <LoadingSpinner size="lg" text="Loading order..." />
         </div>
-      </AppLayout>
+      </AppShell>
     );
   }
 
-  if (!order) return null;
+  if (!order) {
+    return (
+      <AppShell>
+        <div className="px-3 pt-4 text-center py-20">
+          <p className="text-4xl mb-3">😕</p>
+          <p className="text-sm text-slate-400">Order not found.</p>
+          <Link href="/orders">
+            <button className="mt-4 px-5 py-2.5 rounded-xl text-white text-sm font-semibold" style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}>
+              Back to Orders
+            </button>
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
 
-  const myComments = order.comments ?? [];
+  const statusColors: Record<string, { bg: string; text: string }> = {
+    active: { bg: "rgba(16,185,129,0.15)", text: "#34d399" },
+    pending: { bg: "rgba(245,158,11,0.15)", text: "#fbbf24" },
+    completed: { bg: "rgba(99,102,241,0.15)", text: "#818cf8" },
+    cancelled: { bg: "rgba(239,68,68,0.15)", text: "#f87171" },
+  };
+  const sc = statusColors[order.status] ?? statusColors.pending;
 
   return (
-    <AppLayout>
-      <TopHeader title="Order Details" showBack backHref="/orders" />
-
-      <main className="page-content animate-fade-in">
-        {/* Order Header */}
-        <div className="mx-5 mt-5 bg-[var(--glass)] border border-[var(--border-accent)] rounded-2xl p-5">
-          <p className="text-[10px] text-[var(--text-muted)] font-semibold uppercase tracking-widest mb-1">
-            #{order.id.slice(-10).toUpperCase()}
-          </p>
-          <h2 className="text-xl font-extrabold text-[var(--text-primary)] mb-2">
-            {order.title}
-          </h2>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {(order.tags ?? []).map((tag) => (
-              <span key={tag} className="tag">
-                {tag}
-              </span>
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[var(--bg-card)] rounded-xl p-3 text-center">
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Budget</p>
-              <p className="font-extrabold text-emerald-400 text-base">${order.budget.toLocaleString()}</p>
-            </div>
-            <div className="bg-[var(--bg-card)] rounded-xl p-3 text-center">
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Progress</p>
-              <p className="font-extrabold text-violet-400 text-base">{order.progress}%</p>
-            </div>
-            <div className="bg-[var(--bg-card)] rounded-xl p-3 text-center">
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide">Deadline</p>
-              <p className="font-extrabold text-cyan-400 text-base">
-                {order.deadline
-                  ? new Date(order.deadline).toLocaleDateString("en", { month: "short", day: "numeric" })
-                  : "TBD"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="mx-5 mt-4 flex bg-[var(--bg-card)] border border-[var(--border)] rounded-xl overflow-hidden">
-          {(["track", "comments", "payment"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 text-xs font-bold capitalize transition-all ${
-                activeTab === tab
-                  ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              {tab === "track" ? "📍 Track" : tab === "comments" ? "💬 Comments" : "💳 Payment"}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab: Track */}
-        {activeTab === "track" && (
-          <div className="animate-fade-in">
-            <div className="mx-5 mt-4 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5">
-              <h3 className="font-bold text-[var(--text-primary)] mb-5">
-                📦 Order Progress
-              </h3>
-              <OrderStepper currentStatus={order.status} />
-            </div>
-
-            {/* Progress bar */}
-            <div className="mx-5 mt-3 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-[var(--text-muted)] font-medium">Completion</span>
-                <span className="font-bold text-violet-400">{order.progress}%</span>
-              </div>
-              <div className="h-3 bg-[var(--bg-input)] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-violet-600 to-cyan-400 transition-all duration-1000 relative"
-                  style={{ width: `${order.progress}%` }}
-                >
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-[0_0_8px_rgba(124,58,237,0.8)]" />
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="mx-5 mt-3 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5">
-              <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-2">
-                Project Description
-              </h4>
-              <p className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
-                {order.description}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Tab: Comments */}
-        {activeTab === "comments" && (
-          <div className="animate-fade-in">
-            <div className="px-5 mt-4 flex flex-col gap-3">
-              {myComments.length === 0 ? (
-                <div className="text-center py-8 text-[var(--text-muted)]">
-                  <p className="text-3xl mb-2">💬</p>
-                  <p className="text-sm">No comments yet. Start the conversation!</p>
-                </div>
-              ) : (
-                myComments.map((comment) => {
-                  const isMine = comment.authorId === user?.uid;
-                  return (
-                    <div
-                      key={comment.id}
-                      className={`flex gap-2.5 ${isMine ? "flex-row-reverse" : ""}`}
-                    >
-                      <div
-                        className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold text-white ${
-                          comment.authorRole === "admin"
-                            ? "bg-gradient-to-br from-violet-600 to-cyan-500"
-                            : "bg-gradient-to-br from-amber-500 to-red-500"
-                        }`}
-                      >
-                        {comment.authorName.charAt(0).toUpperCase()}
-                      </div>
-                      <div
-                        className={`flex-1 rounded-2xl p-3.5 text-sm leading-relaxed ${
-                          isMine
-                            ? "bg-violet-500/15 border border-violet-500/30 rounded-tr-sm"
-                            : "bg-[var(--bg-card)] border border-[var(--border)] rounded-tl-sm"
-                        }`}
-                      >
-                        <p className="font-bold text-[var(--text-primary)] text-xs mb-1">
-                          {comment.authorRole === "admin" ? "👑 " : ""}
-                          {comment.authorName}
-                        </p>
-                        <p className="text-[var(--text-secondary)]">{comment.text}</p>
-                        <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
-                          {new Date(comment.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Comment input */}
-            <div className="px-5 mt-4">
-              <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3 flex gap-2">
-                <textarea
-                  className="flex-1 bg-transparent text-sm text-[var(--text-primary)] resize-none outline-none placeholder:text-[var(--text-muted)]"
-                  placeholder="Write a comment..."
-                  rows={2}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                />
-                <button
-                  onClick={handleComment}
-                  disabled={!commentText.trim() || posting}
-                  className="self-end px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-sm font-bold rounded-xl disabled:opacity-50 transition-all hover:shadow-[0_4px_12px_rgba(124,58,237,0.4)]"
-                >
-                  {posting ? "..." : "Send"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tab: Payment */}
-        {activeTab === "payment" && (
-          <div className="animate-fade-in px-5 mt-4 flex flex-col gap-3">
-            <p className="text-sm text-[var(--text-muted)]">
-              Choose a payment method to submit your payment proof.
-            </p>
-            {PAYMENT_METHODS.map((method) => (
-              <button
-                key={method.id}
-                onClick={() => {
-                  setSelectedMethod(method.id);
-                  setPaymentModal(true);
-                }}
-                className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 flex items-center gap-4 hover:border-violet-500/40 hover:translate-x-1 transition-all text-left"
-              >
-                <div
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${method.color} flex items-center justify-center text-2xl flex-shrink-0`}
-                >
-                  {method.icon}
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-[var(--text-primary)] text-sm">{method.name}</p>
-                  <p className="text-xs text-[var(--text-muted)] mt-0.5">{method.desc}</p>
-                </div>
-                <span className="text-[var(--text-muted)] text-lg">›</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </main>
-
-      {/* Payment Modal */}
-      {paymentModal && (
-        <div
-          className="bottom-sheet-overlay open"
-          onClick={() => setPaymentModal(false)}
+    <AppShell>
+      <div className="px-3 pt-4 space-y-3">
+        {/* Back */}
+        <Link
+          href="/orders"
+          className="flex items-center gap-2 text-slate-400 text-sm hover:text-indigo-400 transition-colors"
         >
-          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-handle" />
-            <h2 className="text-xl font-extrabold text-[var(--text-primary)] mb-4">
-              💳{" "}
-              {PAYMENT_METHODS.find((m) => m.id === selectedMethod)?.name ?? "Submit Payment"}
-            </h2>
+          <ArrowLeft size={16} /> Back to Orders
+        </Link>
 
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                  Transaction ID *
-                </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Enter your transaction ID"
-                  value={txnId}
-                  onChange={(e) => setTxnId(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                  Amount (PKR) *
-                </label>
-                <input
-                  type="number"
-                  className="form-input"
-                  placeholder="e.g. 15000"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                  Payment Receipt (Screenshot)
-                </label>
-                <div
-                  className="border-2 border-dashed border-[var(--border)] rounded-xl p-4 text-center cursor-pointer hover:border-violet-500/50 transition-all"
-                  onClick={() => fileRef.current?.click()}
-                >
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*,.pdf"
-                    className="hidden"
-                    onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-                  />
-                  {receiptFile ? (
-                    <p className="text-sm text-emerald-400 font-semibold">
-                      ✅ {receiptFile.name}
-                    </p>
-                  ) : (
-                    <>
-                      <p className="text-2xl mb-1">📷</p>
-                      <p className="text-sm text-[var(--text-muted)]">
-                        Upload screenshot
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <button
-                className="btn-primary"
-                onClick={handlePaymentSubmit}
-                disabled={submittingPayment}
-              >
-                {submittingPayment ? "Submitting..." : "✅ Submit Payment Proof"}
-              </button>
-              <button className="btn-secondary" onClick={() => setPaymentModal(false)}>
-                Cancel
-              </button>
-            </div>
+        {/* Order Hero */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-5 rounded-2xl border relative overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.1))",
+            borderColor: "rgba(99,102,241,0.3)",
+          }}
+        >
+          <p className="text-[10px] text-slate-400 font-mono">
+            #{order.id?.slice(0, 8).toUpperCase()}
+          </p>
+          <h1 className="text-xl font-black text-slate-900 dark:text-white mt-1">
+            {order.title}
+          </h1>
+          <p
+            className="text-2xl font-black mt-1"
+            style={{
+              background: "linear-gradient(90deg, #6366f1, #ec4899)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            ${order.budget.toLocaleString()}
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <span className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-slate-300">
+              📅 {order.deadline}
+            </span>
+            <span className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-slate-300">
+              👤 {order.clientName}
+            </span>
+            <span
+              className="text-[10px] px-2.5 py-1 rounded-full font-bold"
+              style={{ background: sc.bg, color: sc.text }}
+            >
+              {order.status}
+            </span>
           </div>
+          {order.description && (
+            <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+              {order.description}
+            </p>
+          )}
+        </motion.div>
+
+        {/* Progress Stepper */}
+        <OrderStepper currentStage={order.stage} />
+
+        {/* Payment */}
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+            💳 Payment
+          </h2>
+          <PaymentSection order={order} onPaymentSubmit={handlePaymentSubmit} />
         </div>
-      )}
-    </AppLayout>
+
+        {/* Comments */}
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+            💬 Communication
+          </h2>
+          <CommentThread
+            orderId={orderId}
+            comments={comments}
+            onSend={handleSendComment}
+          />
+        </div>
+
+        <div className="h-4" />
+      </div>
+    </AppShell>
   );
 }

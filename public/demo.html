@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AppCraft by DigitalSpot – Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── CSS VARIABLES ─── */
+    :root {
+      --indigo: #6366f1;
+      --indigo-dark: #4f46e5;
+      --pink: #ec4899;
+      --pink-dark: #db2777;
+      --glass-bg: rgba(255,255,255,0.07);
+      --glass-border: rgba(255,255,255,0.12);
+      --card-bg: rgba(255,255,255,0.05);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --bg-primary: #0f0f1a;
+      --bg-secondary: #1a1a2e;
+      --bg-card: #16213e;
+      --shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --radius: 20px;
+      --radius-sm: 12px;
+    }
+    [data-theme="light"] {
+      --glass-bg: rgba(255,255,255,0.6);
+      --glass-border: rgba(255,255,255,0.8);
+      --card-bg: rgba(255,255,255,0.7);
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --bg-primary: #f0f4ff;
+      --bg-secondary: #e8eeff;
+      --bg-card: #ffffff;
+      --shadow: 0 8px 32px rgba(99,102,241,0.15);
+    }
+
+    /* ─── RESET & BASE ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+
+    /* ─── SPLASH SCREEN ─── */
+    #splash {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(135deg, #0f0f1a 0%, #1a0a2e 40%, #0d1b4b 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      animation: splashFade 0.5s ease 3s forwards;
+    }
+    @keyframes splashFade {
+      to { opacity: 0; pointer-events: none; }
+    }
+    .splash-logo {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .splash-icon {
+      width: 90px; height: 90px; border-radius: 24px;
+      background: linear-gradient(135deg, var(--indigo), var(--pink));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 42px;
+      box-shadow: 0 0 60px rgba(99,102,241,0.6), 0 0 120px rgba(236,72,153,0.3);
+      animation: iconPulse 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes iconPulse {
+      from { transform: scale(1); box-shadow: 0 0 60px rgba(99,102,241,0.6); }
+      to   { transform: scale(1.08); box-shadow: 0 0 100px rgba(99,102,241,0.9), 0 0 160px rgba(236,72,153,0.4); }
+    }
+    .splash-brand {
+      font-size: clamp(22px, 6vw, 32px); font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #a5b4fc, #f9a8d4, #818cf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-align: center;
+    }
+    .splash-sub {
+      font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5); letter-spacing: 3px;
+      text-transform: uppercase; margin-top: -8px;
+    }
+    .splash-loader {
+      margin-top: 40px; width: 200px; height: 3px;
+      background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden;
+    }
+    .splash-loader-bar {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--indigo), var(--pink));
+      animation: loaderFill 2.8s ease forwards;
+    }
+    @keyframes loaderFill { from { width: 0%; } to { width: 100%; } }
+    .splash-dots {
+      display: flex; gap: 8px; margin-top: 16px;
+    }
+    .splash-dots span {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--indigo); opacity: 0.3;
+      animation: dotBounce 1.2s ease infinite;
+    }
+    .splash-dots span:nth-child(2) { animation-delay: 0.2s; background: #818cf8; }
+    .splash-dots span:nth-child(3) { animation-delay: 0.4s; background: var(--pink); }
+    @keyframes dotBounce {
+      0%, 100% { opacity: 0.3; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-6px); }
+    }
+
+    /* ─── APP SHELL ─── */
+    #app {
+      max-width: 430px; margin: 0 auto;
+      min-height: 100vh; position: relative;
+      padding-bottom: 80px;
+    }
+
+    /* ─── HEADER ─── */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      padding: 16px 20px 12px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-brand { display: flex; align-items: center; gap: 10px; }
+    .header-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--indigo), var(--pink));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .header-title { font-size: 15px; font-weight: 700; }
+    .header-sub { font-size: 10px; color: var(--text-secondary); }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .theme-btn {
+      width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--glass-border);
+      background: var(--glass-bg); cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    .theme-btn:hover { background: var(--indigo); transform: scale(1.1); }
+    .notif-btn {
+      width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--glass-border);
+      background: var(--glass-bg); cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-size: 16px; position: relative;
+      transition: all 0.3s ease;
+    }
+    .notif-badge {
+      position: absolute; top: 6px; right: 6px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--pink); border: 1.5px solid var(--bg-primary);
+    }
+
+    /* ─── ALERT BANNER ─── */
+    .alert-banner {
+      margin: 12px 16px 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2));
+      border: 1px solid rgba(99,102,241,0.3);
+      font-size: 12px; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .alert-banner span:first-child { font-size: 16px; }
+
+    /* ─── HERO SECTION ─── */
+    .hero {
+      margin: 16px; padding: 24px 20px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(236,72,153,0.15) 100%);
+      border: 1px solid rgba(99,102,241,0.3);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -40px; right: -40px;
+      width: 150px; height: 150px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,102,241,0.3), transparent 70%);
+    }
+    .hero::after {
+      content: '';
+      position: absolute; bottom: -30px; left: -30px;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(236,72,153,0.25), transparent 70%);
+    }
+    .hero-greeting { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+    .hero-name { font-size: 22px; font-weight: 800; }
+    .hero-name span { background: linear-gradient(90deg, var(--indigo), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-desc { font-size: 12px; color: var(--text-secondary); margin-top: 8px; line-height: 1.6; }
+    .hero-cta {
+      margin-top: 16px; display: inline-flex; align-items: center; gap: 6px;
+      background: linear-gradient(135deg, var(--indigo), var(--pink));
+      color: white; border: none; border-radius: 10px;
+      padding: 10px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hero-cta:hover { transform: scale(1.04); box-shadow: 0 8px 24px rgba(99,102,241,0.4); }
+
+    /* ─── SECTION HEADER ─── */
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; margin: 20px 0 12px;
+    }
+    .section-title { font-size: 15px; font-weight: 700; }
+    .section-link { font-size: 12px; color: var(--indigo); font-weight: 500; cursor: pointer; }
+
+    /* ─── STAT CARDS ─── */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px; }
+    .stat-card {
+      padding: 18px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--card-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      transition: transform 0.2s ease;
+      cursor: pointer;
+      position: relative; overflow: hidden;
+    }
+    .stat-card:hover { transform: translateY(-3px); }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .stat-card.indigo::before { background: linear-gradient(90deg, var(--indigo), #818cf8); }
+    .stat-card.pink::before { background: linear-gradient(90deg, var(--pink), #f472b6); }
+    .stat-card.green::before { background: linear-gradient(90deg, #10b981, #34d399); }
+    .stat-card.amber::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .stat-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 10px;
+    }
+    .stat-icon.indigo { background: rgba(99,102,241,0.15); }
+    .stat-icon.pink   { background: rgba(236,72,153,0.15); }
+    .stat-icon.green  { background: rgba(16,185,129,0.15); }
+    .stat-icon.amber  { background: rgba(245,158,11,0.15); }
+    .stat-value { font-size: 22px; font-weight: 800; }
+    .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .stat-change { font-size: 10px; margin-top: 6px; font-weight: 500; }
+    .stat-change.up { color: #34d399; }
+    .stat-change.down { color: #f87171; }
+
+    /* ─── ORDER TRACKER STEPPER ─── */
+    .stepper-card {
+      margin: 16px; padding: 20px;
+      border-radius: var(--radius);
+      background: var(--card-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+    }
+    .stepper-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .stepper-title { font-size: 14px; font-weight: 700; }
+    .stepper-badge {
+      font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 99px;
+      background: rgba(99,102,241,0.15); color: var(--indigo); border: 1px solid rgba(99,102,241,0.3);
+    }
+    .stepper { display: flex; flex-direction: column; gap: 0; }
+    .step { display: flex; gap: 14px; align-items: flex-start; }
+    .step-line-wrap { display: flex; flex-direction: column; align-items: center; }
+    .step-dot {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    .step-dot.done {
+      background: linear-gradient(135deg, var(--indigo), var(--pink));
+      box-shadow: 0 0 16px rgba(99,102,241,0.5);
+    }
+    .step-dot.active {
+      background: rgba(99,102,241,0.2);
+      border: 2px solid var(--indigo);
+      animation: stepPulse 1.5s ease-in-out infinite;
+    }
+    .step-dot.pending { background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.1); }
+    @keyframes stepPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(99,102,241,0); }
+    }
+    .step-connector { width: 2px; flex: 1; min-height: 20px; background: rgba(255,255,255,0.08); }
+    .step-connector.done { background: linear-gradient(180deg, var(--indigo), rgba(99,102,241,0.3)); }
+    .step-content { padding-bottom: 20px; flex: 1; }
+    .step-name { font-size: 13px; font-weight: 600; }
+    .step-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .step-time { font-size: 10px; color: var(--indigo); margin-top: 4px; }
+    .step:last-child .step-connector { display: none; }
+    .step:last-child .step-content { padding-bottom: 0; }
+
+    /* ─── QUICK ACTIONS ─── */
+    .quick-actions { display: flex; gap: 10px; padding: 0 16px; overflow-x: auto; padding-bottom: 4px; }
+    .quick-actions::-webkit-scrollbar { display: none; }
+    .quick-action {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      background: var(--card-bg); border: 1px solid var(--glass-border);
+      cursor: pointer; transition: all 0.2s ease; min-width: 75px;
+    }
+    .quick-action:hover { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.4); transform: translateY(-2px); }
+    .quick-action-icon { font-size: 22px; }
+    .quick-action-label { font-size: 10px; font-weight: 600; text-align: center; color: var(--text-secondary); }
+
+    /* ─── RECENT ORDERS ─── */
+    .order-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
+    .order-card {
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      background: var(--card-bg); border: 1px solid var(--glass-border);
+      display: flex; align-items: center; gap: 12px;
+      transition: all 0.2s ease; cursor: pointer;
+    }
+    .order-card:hover { border-color: rgba(99,102,241,0.4); transform: translateX(3px); }
+    .order-avatar {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .order-avatar.indigo { background: rgba(99,102,241,0.15); }
+    .order-avatar.pink   { background: rgba(236,72,153,0.15); }
+    .order-avatar.green  { background: rgba(16,185,129,0.15); }
+    .order-info { flex: 1; }
+    .order-name { font-size: 13px; font-weight: 600; }
+    .order-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .order-right { text-align: right; }
+    .order-amount { font-size: 14px; font-weight: 700; }
+    .order-status {
+      font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 99px; margin-top: 4px;
+    }
+    .order-status.active { background: rgba(16,185,129,0.15); color: #34d399; }
+    .order-status.pending { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .order-status.review { background: rgba(99,102,241,0.15); color: #818cf8; }
+
+    /* ─── PORTFOLIO GRID ─── */
+    .portfolio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px; }
+    .portfolio-card {
+      border-radius: var(--radius-sm); overflow: hidden;
+      border: 1px solid var(--glass-border); cursor: pointer;
+      transition: all 0.3s ease; aspect-ratio: 4/3;
+      position: relative;
+    }
+    .portfolio-card:hover { transform: scale(1.03); border-color: rgba(99,102,241,0.5); }
+    .portfolio-thumb {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+    }
+    .portfolio-thumb.g1 { background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(236,72,153,0.2)); }
+    .portfolio-thumb.g2 { background: linear-gradient(135deg, rgba(16,185,129,0.3), rgba(99,102,241,0.2)); }
+    .portfolio-thumb.g3 { background: linear-gradient(135deg, rgba(245,158,11,0.3), rgba(236,72,153,0.2)); }
+    .portfolio-thumb.g4 { background: linear-gradient(135deg, rgba(236,72,153,0.3), rgba(99,102,241,0.2)); }
+    .portfolio-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 60%);
+      display: flex; align-items: flex-end; padding: 10px;
+    }
+    .portfolio-title { font-size: 11px; font-weight: 600; }
+    .portfolio-tag { font-size: 9px; color: rgba(255,255,255,0.6); }
+
+    /* ─── BOTTOM NAV ─── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      padding: 10px 20px 20px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--glass-border);
+      display: flex; justify-content: space-around; align-items: center;
+      z-index: 100;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      cursor: pointer; padding: 6px 12px; border-radius: 12px;
+      transition: all 0.2s ease; position: relative;
+      flex: 1;
+    }
+    .nav-item:hover { background: rgba(99,102,241,0.1); }
+    .nav-item.active { }
+    .nav-icon {
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; transition: transform 0.2s ease;
+    }
+    .nav-item.active .nav-icon {
+      filter: drop-shadow(0 0 6px rgba(99,102,241,0.8));
+      transform: scale(1.15);
+    }
+    .nav-label { font-size: 10px; font-weight: 500; color: var(--text-secondary); transition: color 0.2s ease; }
+    .nav-item.active .nav-label { color: var(--indigo); font-weight: 700; }
+    .nav-pip {
+      position: absolute; bottom: -4px;
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--indigo);
+      opacity: 0; transition: opacity 0.2s ease;
+    }
+    .nav-item.active .nav-pip { opacity: 1; }
+
+    /* ─── PAGE VIEWS ─── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ─── PORTFOLIO PAGE ─── */
+    .portfolio-page .portfolio-grid-full {
+      display: grid; grid-template-columns: 1fr; gap: 16px; padding: 0 16px;
+    }
+    .portfolio-full-card {
+      border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--glass-border); cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .portfolio-full-card:hover { transform: translateY(-4px); border-color: rgba(99,102,241,0.5); box-shadow: var(--shadow); }
+    .portfolio-preview {
+      height: 180px; display: flex; align-items: center; justify-content: center;
+      font-size: 60px; position: relative;
+    }
+    .portfolio-preview.g1 { background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.15)); }
+    .portfolio-preview.g2 { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(99,102,241,0.15)); }
+    .portfolio-preview.g3 { background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(236,72,153,0.15)); }
+    .portfolio-preview-badge {
+      position: absolute; top: 12px; right: 12px;
+      font-size: 10px; font-weight: 600; padding: 4px 10px;
+      border-radius: 99px; background: rgba(99,102,241,0.8); color: white;
+    }
+    .portfolio-full-info { padding: 16px; background: var(--card-bg); }
+    .portfolio-full-title { font-size: 14px; font-weight: 700; }
+    .portfolio-full-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.6; }
+    .portfolio-full-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .tag { font-size: 10px; padding: 3px 8px; border-radius: 99px; background: rgba(99,102,241,0.1); color: var(--indigo); border: 1px solid rgba(99,102,241,0.2); }
+
+    /* ─── TRACK ORDER PAGE ─── */
+    .order-detail {
+      margin: 16px; padding: 20px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(236,72,153,0.1));
+      border: 1px solid rgba(99,102,241,0.3);
+    }
+    .order-id { font-size: 11px; color: var(--text-secondary); }
+    .order-title { font-size: 18px; font-weight: 800; margin-top: 4px; }
+    .order-budget { font-size: 22px; font-weight: 900; background: linear-gradient(90deg, var(--indigo), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .order-metas { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .order-meta-tag {
+      font-size: 11px; padding: 4px 10px; border-radius: 99px;
+      background: rgba(255,255,255,0.07); border: 1px solid var(--glass-border);
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    /* ─── PROFILE PAGE ─── */
+    .profile-header {
+      padding: 30px 20px 20px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .profile-avatar {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--indigo), var(--pink));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; border: 3px solid rgba(99,102,241,0.4);
+      box-shadow: 0 0 30px rgba(99,102,241,0.4);
+    }
+    .profile-name { font-size: 18px; font-weight: 800; }
+    .profile-email { font-size: 12px; color: var(--text-secondary); }
+    .profile-role {
+      font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 99px;
+      background: linear-gradient(135deg, var(--indigo), var(--pink));
+      color: white;
+    }
+    .profile-stats {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px; background: var(--glass-border);
+      margin: 0 16px; border-radius: var(--radius-sm); overflow: hidden;
+    }
+    .profile-stat {
+      background: var(--card-bg); padding: 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .profile-stat-value { font-size: 20px; font-weight: 800; }
+    .profile-stat-label { font-size: 10px; color: var(--text-secondary); }
+    .profile-menu { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+    .profile-menu-item {
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      background: var(--card-bg); border: 1px solid var(--glass-border);
+      display: flex; align-items: center; gap: 12px; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .profile-menu-item:hover { border-color: rgba(99,102,241,0.4); transform: translateX(3px); }
+    .profile-menu-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .profile-menu-icon.indigo { background: rgba(99,102,241,0.15); }
+    .profile-menu-icon.pink   { background: rgba(236,72,153,0.15); }
+    .profile-menu-icon.green  { background: rgba(16,185,129,0.15); }
+    .profile-menu-icon.amber  { background: rgba(245,158,11,0.15); }
+    .profile-menu-icon.red    { background: rgba(239,68,68,0.15); }
+    .profile-menu-text { flex: 1; }
+    .profile-menu-title { font-size: 13px; font-weight: 600; }
+    .profile-menu-sub { font-size: 11px; color: var(--text-secondary); }
+    .profile-menu-arrow { font-size: 14px; color: var(--text-secondary); }
+
+    /* ─── WHATSAPP BUTTON ─── */
+    .whatsapp-btn {
+      position: fixed; bottom: 90px; right: 20px; z-index: 200;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg, #25d366, #128c7e);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; box-shadow: 0 4px 20px rgba(37,211,102,0.5);
+      cursor: pointer; text-decoration: none;
+      animation: waBounce 2s ease-in-out infinite;
+      transition: transform 0.2s ease;
+    }
+    .whatsapp-btn:hover { transform: scale(1.15) !important; animation: none; }
+    @keyframes waBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .whatsapp-tooltip {
+      position: fixed; bottom: 100px; right: 80px; z-index: 199;
+      background: var(--bg-card); border: 1px solid var(--glass-border);
+      padding: 6px 12px; border-radius: 10px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+      box-shadow: var(--shadow);
+      animation: tooltipFade 3s ease 4s forwards;
+      opacity: 0; animation-fill-mode: both;
+    }
+    @keyframes tooltipFade {
+      0% { opacity: 0; transform: translateX(5px); }
+      20% { opacity: 1; transform: translateX(0); }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ─── CHART BAR ─── */
+    .mini-chart { display: flex; align-items: flex-end; gap: 6px; height: 60px; padding: 0 16px; }
+    .chart-bar {
+      flex: 1; border-radius: 4px 4px 0 0;
+      background: linear-gradient(180deg, rgba(99,102,241,0.8), rgba(99,102,241,0.3));
+      transition: height 0.5s ease;
+      position: relative; min-width: 20px;
+    }
+    .chart-bar:nth-child(even) { background: linear-gradient(180deg, rgba(236,72,153,0.7), rgba(236,72,153,0.2)); }
+    .chart-bar.highlight { background: linear-gradient(180deg, var(--indigo), var(--pink)); box-shadow: 0 0 12px rgba(99,102,241,0.5); }
+    .chart-labels { display: flex; gap: 6px; padding: 4px 16px 0; }
+    .chart-label { flex: 1; text-align: center; font-size: 9px; color: var(--text-secondary); }
+
+    /* ─── MAINTENANCE MODE ─── */
+    #maintenance {
+      display: none; position: fixed; inset: 0; z-index: 9998;
+      background: linear-gradient(135deg, #0f0f1a, #1a0a2e);
+      align-items: center; justify-content: center; flex-direction: column;
+      gap: 20px; text-align: center; padding: 40px;
+    }
+    .maintenance-icon { font-size: 80px; animation: iconPulse 2s ease-in-out infinite alternate; }
+    .maintenance-title { font-size: 28px; font-weight: 800; }
+    .maintenance-title span { background: linear-gradient(90deg, var(--indigo), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .maintenance-desc { font-size: 14px; color: var(--text-secondary); max-width: 300px; line-height: 1.7; }
+    .maintenance-progress { width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
+    .maintenance-bar { height: 100%; background: linear-gradient(90deg, var(--indigo), var(--pink)); border-radius: 99px; animation: maintProgress 3s ease-in-out infinite alternate; }
+    @keyframes maintProgress { from { width: 30%; } to { width: 90%; } }
+
+    /* ─── RESPONSIVE ─── */
+    @media (min-width: 768px) {
+      #app { max-width: 600px; }
+      .stats-grid { grid-template-columns: repeat(4, 1fr); }
+      .portfolio-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (min-width: 1024px) {
+      #app { max-width: 480px; border-left: 1px solid var(--glass-border); border-right: 1px solid var(--glass-border); }
+      body::before {
+        content: 'AppCraft by DigitalSpot — Mobile Preview';
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        font-size: 12px; color: rgba(255,255,255,0.3);
+        font-family: 'Poppins', sans-serif;
+        z-index: 1;
+      }
+    }
+
+    /* ─── ANIMATIONS ─── */
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.4); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<!-- ─── SPLASH SCREEN ─── -->
+<div id="splash">
+  <div class="splash-logo">
+    <div class="splash-icon">🚀</div>
+    <div class="splash-brand">AppCraft by DigitalSpot</div>
+    <div class="splash-sub">Agency Portal v2.0</div>
+    <div class="splash-loader"><div class="splash-loader-bar"></div></div>
+    <div class="splash-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MAINTENANCE MODE (toggle via JS) ─── -->
+<div id="maintenance">
+  <div class="maintenance-icon">⚙️</div>
+  <div class="maintenance-title">We Are <span>Upgrading</span></div>
+  <div class="maintenance-desc">Our team is working hard to bring you an even better experience. We'll be back shortly!</div>
+  <div class="maintenance-progress"><div class="maintenance-bar"></div></div>
+  <div style="font-size:12px;color:var(--text-secondary);margin-top:10px;">Est. time: ~30 minutes</div>
+</div>
+
+<!-- ─── MAIN APP ─── -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-icon">🚀</div>
+      <div>
+        <div class="header-title">AppCraft</div>
+        <div class="header-sub">by DigitalSpot</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="notif-btn" onclick="showNotif()">🔔<span class="notif-badge"></span></button>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    </div>
+  </header>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner">
+    <span>📢</span>
+    <span>New payment gateway added! JazzCash & EasyPaisa now available for all clients.</span>
+  </div>
+
+  <!-- ═══════════════════════════════ HOME PAGE ═══════════════════════════════ -->
+  <div id="page-home" class="page active fade-in">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-greeting">👋 Good morning,</div>
+      <div class="hero-name">Welcome back, <span>Ahmed!</span></div>
+      <div class="hero-desc">You have <strong>3 active orders</strong> and <strong>2 pending payments</strong>. Let's build something amazing today.</div>
+      <button class="hero-cta" onclick="navigate('orders')">📋 View Orders &rarr;</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="section-header">
+      <span class="section-title">📊 Overview</span>
+      <span class="section-link">This Month</span>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card indigo" onclick="animateStat(this)">
+        <div class="stat-icon indigo">📦</div>
+        <div class="stat-value">12</div>
+        <div class="stat-label">Active Orders</div>
+        <div class="stat-change up">↑ 25% this week</div>
+      </div>
+      <div class="stat-card pink" onclick="animateStat(this)">
+        <div class="stat-icon pink">💰</div>
+        <div class="stat-value">$8.4k</div>
+        <div class="stat-label">Total Revenue</div>
+        <div class="stat-change up">↑ 12% vs last month</div>
+      </div>
+      <div class="stat-card green" onclick="animateStat(this)">
+        <div class="stat-icon green">✅</div>
+        <div class="stat-value">47</div>
+        <div class="stat-label">Completed</div>
+        <div class="stat-change up">↑ 8 this month</div>
+      </div>
+      <div class="stat-card amber" onclick="animateStat(this)">
+        <div class="stat-icon amber">⏳</div>
+        <div class="stat-value">5</div>
+        <div class="stat-label">Pending Pay</div>
+        <div class="stat-change down">↓ 2 overdue</div>
+      </div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="section-header" style="margin-top:20px;">
+      <span class="section-title">⚡ Quick Actions</span>
+    </div>
+    <div class="quick-actions">
+      <div class="quick-action" onclick="navigate('orders')">
+        <div class="quick-action-icon">➕</div>
+        <div class="quick-action-label">New Order</div>
+      </div>
+      <div class="quick-action" onclick="navigate('track')">
+        <div class="quick-action-icon">📍</div>
+        <div class="quick-action-label">Track</div>
+      </div>
+      <div class="quick-action">
+        <div class="quick-action-icon">💳</div>
+        <div class="quick-action-label">Payment</div>
+      </div>
+      <div class="quick-action">
+        <div class="quick-action-icon">🎫</div>
+        <div class="quick-action-label">Support</div>
+      </div>
+      <div class="quick-action">
+        <div class="quick-action-icon">📁</div>
+        <div class="quick-action-label">Files</div>
+      </div>
+      <div class="quick-action" onclick="navigate('portfolio')">
+        <div class="quick-action-icon">🖼️</div>
+        <div class="quick-action-label">Portfolio</div>
+      </div>
+    </div>
+
+    <!-- REVENUE CHART -->
+    <div style="margin:20px 0 0;">
+      <div class="section-header">
+        <span class="section-title">📈 Revenue Chart</span>
+        <span class="section-link">6 Months</span>
+      </div>
+      <div class="mini-chart" id="chart">
+        <div class="chart-bar" style="height:40%"></div>
+        <div class="chart-bar" style="height:65%"></div>
+        <div class="chart-bar" style="height:45%"></div>
+        <div class="chart-bar" style="height:80%"></div>
+        <div class="chart-bar" style="height:55%"></div>
+        <div class="chart-bar highlight" style="height:100%"></div>
+      </div>
+      <div class="chart-labels">
+        <div class="chart-label">Jul</div>
+        <div class="chart-label">Aug</div>
+        <div class="chart-label">Sep</div>
+        <div class="chart-label">Oct</div>
+        <div class="chart-label">Nov</div>
+        <div class="chart-label">Dec</div>
+      </div>
+    </div>
+
+    <!-- RECENT ORDERS -->
+    <div class="section-header" style="margin-top:20px;">
+      <span class="section-title">🗂 Recent Orders</span>
+      <span class="section-link" onclick="navigate('track')">See all</span>
+    </div>
+    <div class="order-list">
+      <div class="order-card" onclick="navigate('track')">
+        <div class="order-avatar indigo">🛒</div>
+        <div class="order-info">
+          <div class="order-name">E-Commerce Platform</div>
+          <div class="order-meta">Client: ZaynTech · Due Dec 30</div>
+        </div>
+        <div class="order-right">
+          <div class="order-amount">$2,400</div>
+          <div class="order-status active">Active</div>
+        </div>
+      </div>
+      <div class="order-card" onclick="navigate('track')">
+        <div class="order-avatar pink">📱</div>
+        <div class="order-info">
+          <div class="order-name">Mobile App UI/UX</div>
+          <div class="order-meta">Client: FoodieHub · Due Jan 5</div>
+        </div>
+        <div class="order-right">
+          <div class="order-amount">$1,800</div>
+          <div class="order-status pending">Pending</div>
+        </div>
+      </div>
+      <div class="order-card" onclick="navigate('track')">
+        <div class="order-avatar green">🤖</div>
+        <div class="order-info">
+          <div class="order-name">AI Chatbot Integration</div>
+          <div class="order-meta">Client: BotWorks · Due Jan 12</div>
+        </div>
+        <div class="order-right">
+          <div class="order-amount">$3,200</div>
+          <div class="order-status review">In Review</div>
+        </div>
+      </div>
+    </div>
+    <div style="height:16px;"></div>
+  </div>
+
+  <!-- ═══════════════════════════════ PORTFOLIO PAGE ═══════════════════════════════ -->
+  <div id="page-portfolio" class="page portfolio-page fade-in">
+    <div class="section-header" style="padding-top:20px;">
+      <span class="section-title">🖼️ Our Portfolio</span>
+      <span class="section-link">8 Projects</span>
+    </div>
+    <div class="portfolio-grid-full">
+
+      <div class="portfolio-full-card">
+        <div class="portfolio-preview g1">🛒<div class="portfolio-preview-badge">Live</div></div>
+        <div class="portfolio-full-info">
+          <div class="portfolio-full-title">ShopNow — E-Commerce Platform</div>
+          <div class="portfolio-full-desc">Full-stack e-commerce with Next.js, Stripe integration, real-time inventory management.</div>
+          <div class="portfolio-full-tags">
+            <span class="tag">Next.js</span>
+            <span class="tag">Stripe</span>
+            <span class="tag">Firebase</span>
+            <span class="tag">Tailwind</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="portfolio-full-card">
+        <div class="portfolio-preview g2">📱<div class="portfolio-preview-badge">Live</div></div>
+        <div class="portfolio-full-info">
+          <div class="portfolio-full-title">FoodieHub — Food Delivery App</div>
+          <div class="portfolio-full-desc">Real-time food ordering with live tracking, driver app, and restaurant dashboard.</div>
+          <div class="portfolio-full-tags">
+            <span class="tag">React Native</span>
+            <span class="tag">Node.js</span>
+            <span class="tag">Socket.io</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="portfolio-full-card">
+        <div class="portfolio-preview g3">🤖<div class="portfolio-preview-badge">Beta</div></div>
+        <div class="portfolio-full-info">
+          <div class="portfolio-full-title">BotWorks — AI Assistant</div>
+          <div class="portfolio-full-desc">Custom GPT-powered chatbot with CRM integration and multi-language support.</div>
+          <div class="portfolio-full-tags">
+            <span class="tag">OpenAI</span>
+            <span class="tag">Python</span>
+            <span class="tag">FastAPI</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div style="height:16px;"></div>
+  </div>
+
+  <!-- ═══════════════════════════════ TRACK ORDER PAGE ═══════════════════════════════ -->
+  <div id="page-track" class="page fade-in">
+    <div class="section-header" style="padding-top:20px;">
+      <span class="section-title">📍 Track Your Order</span>
+    </div>
+
+    <!-- ORDER DETAIL CARD -->
+    <div class="order-detail">
+      <div class="order-id">#ORD-2024-0087</div>
+      <div class="order-title">E-Commerce Platform</div>
+      <div class="order-budget">$2,400</div>
+      <div class="order-metas">
+        <div class="order-meta-tag">📅 Due Dec 30, 2024</div>
+        <div class="order-meta-tag">👤 ZaynTech</div>
+        <div class="order-meta-tag">🟢 Active</div>
+      </div>
+    </div>
+
+    <!-- STEPPER -->
+    <div class="stepper-card">
+      <div class="stepper-header">
+        <div class="stepper-title">🔄 Progress Tracker</div>
+        <div class="stepper-badge">Step 3 of 5</div>
+      </div>
+      <div class="stepper">
+        <div class="step">
+          <div class="step-line-wrap">
+            <div class="step-dot done">✅</div>
+            <div class="step-connector done"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-name">Requirements Gathering</div>
+            <div class="step-desc">All project requirements documented and approved.</div>
+            <div class="step-time">Completed: Dec 10, 2024</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-line-wrap">
+            <div class="step-dot done">✅</div>
+            <div class="step-connector done"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-name">UI/UX Design</div>
+            <div class="step-desc">Wireframes, mockups, and design system created.</div>
+            <div class="step-time">Completed: Dec 16, 2024</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-line-wrap">
+            <div class="step-dot active">⚡</div>
+            <div class="step-connector"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-name">Development</div>
+            <div class="step-desc">Frontend & backend development in progress.</div>
+            <div class="step-time">🔄 In Progress — 68% complete</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-line-wrap">
+            <div class="step-dot pending">🔬</div>
+            <div class="step-connector"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-name">Testing & QA</div>
+            <div class="step-desc">Unit tests, integration tests, and UAT.</div>
+            <div class="step-time">Estimated: Dec 26, 2024</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-line-wrap">
+            <div class="step-dot pending">🚀</div>
+          </div>
+          <div class="step-content">
+            <div class="step-name">Delivery & Deployment</div>
+            <div class="step-desc">Final delivery, deployment, and handover docs.</div>
+            <div class="step-time">Target: Dec 30, 2024</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMENTS -->
+    <div class="stepper-card" style="margin-top:0;">
+      <div class="stepper-header">
+        <div class="stepper-title">💬 Comment Thread</div>
+        <div class="stepper-badge">3 messages</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--pink));display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">👤</div>
+          <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:12px 12px 12px 0;padding:10px 12px;flex:1;">
+            <div style="font-size:11px;font-weight:700;color:var(--indigo);">Admin · DigitalSpot</div>
+            <div style="font-size:12px;margin-top:4px;line-height:1.6;">Homepage design completed. Please review the Figma link shared via email and approve.</div>
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">Dec 16 · 2:30 PM</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-direction:row-reverse;">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">👤</div>
+          <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:12px 12px 0 12px;padding:10px 12px;flex:1;">
+            <div style="font-size:11px;font-weight:700;color:#34d399;">You · ZaynTech</div>
+            <div style="font-size:12px;margin-top:4px;line-height:1.6;">Looks great! Approved. Please proceed with development.</div>
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">Dec 16 · 4:15 PM</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <input type="text" placeholder="Type a message..." style="flex:1;padding:10px 14px;border-radius:10px;background:var(--card-bg);border:1px solid var(--glass-border);color:var(--text-primary);font-family:inherit;font-size:12px;outline:none;" />
+        <button style="padding:10px 14px;border-radius:10px;background:linear-gradient(135deg,var(--indigo),var(--pink));border:none;color:white;cursor:pointer;font-size:16px;">➤</button>
+      </div>
+    </div>
+    <div style="height:16px;"></div>
+  </div>
+
+  <!-- ═══════════════════════════════ PROFILE PAGE ═══════════════════════════════ -->
+  <div id="page-profile" class="page fade-in">
+    <div class="profile-header">
+      <div class="profile-avatar">👤</div>
+      <div class="profile-name">Ahmed Hassan</div>
+      <div class="profile-email">ahmed@zayntech.com</div>
+      <div class="profile-role">⭐ Premium Client</div>
+    </div>
+
+    <div class="profile-stats">
+      <div class="profile-stat">
+        <div class="profile-stat-value">12</div>
+        <div class="profile-stat-label">Orders</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value">$8.4k</div>
+        <div class="profile-stat-label">Spent</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value">4.9⭐</div>
+        <div class="profile-stat-label">Rating</div>
+      </div>
+    </div>
+
+    <div class="profile-menu" style="margin-top:16px;">
+      <div class="profile-menu-item">
+        <div class="profile-menu-icon indigo">👤</div>
+        <div class="profile-menu-text">
+          <div class="profile-menu-title">Edit Profile</div>
+          <div class="profile-menu-sub">Update your personal info</div>
+        </div>
+        <div class="profile-menu-arrow">›</div>
+      </div>
+      <div class="profile-menu-item">
+        <div class="profile-menu-icon pink">💳</div>
+        <div class="profile-menu-text">
+          <div class="profile-menu-title">Payment History</div>
+          <div class="profile-menu-sub">View all transactions</div>
+        </div>
+        <div class="profile-menu-arrow">›</div>
+      </div>
+      <div class="profile-menu-item">
+        <div class="profile-menu-icon green">🔔</div>
+        <div class="profile-menu-text">
+          <div class="profile-menu-title">Notifications</div>
+          <div class="profile-menu-sub">Manage alerts & updates</div>
+        </div>
+        <div class="profile-menu-arrow">›</div>
+      </div>
+      <div class="profile-menu-item">
+        <div class="profile-menu-icon amber">🔒</div>
+        <div class="profile-menu-text">
+          <div class="profile-menu-title">Security</div>
+          <div class="profile-menu-sub">Password & 2FA settings</div>
+        </div>
+        <div class="profile-menu-arrow">›</div>
+      </div>
+      <div class="profile-menu-item">
+        <div class="profile-menu-icon indigo">🌐</div>
+        <div class="profile-menu-text">
+          <div class="profile-menu-title">Language & Region</div>
+          <div class="profile-menu-sub">English (US) · PKT+5</div>
+        </div>
+        <div class="profile-menu-arrow">›</div>
+      </div>
+      <div class="profile-menu-item" onclick="toggleMaintenance()">
+        <div class="profile-menu-icon amber">⚙️</div>
+        <div class="profile-menu-text">
+          <div class="profile-menu-title">Toggle Maintenance Mode</div>
+          <div class="profile-menu-sub">Demo: Show/hide upgrade screen</div>
+        </div>
+        <div class="profile-menu-arrow">›</div>
+      </div>
+      <div class="profile-menu-item" style="border-color:rgba(239,68,68,0.2);">
+        <div class="profile-menu-icon red">🚪</div>
+        <div class="profile-menu-text">
+          <div class="profile-menu-title" style="color:#f87171;">Sign Out</div>
+          <div class="profile-menu-sub">ahmed@zayntech.com</div>
+        </div>
+        <div class="profile-menu-arrow">›</div>
+      </div>
+    </div>
+    <div style="height:16px;"></div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="nav-item active" id="nav-home" onclick="navigate('home')">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">Home</div>
+    <div class="nav-pip"></div>
+  </div>
+  <div class="nav-item" id="nav-portfolio" onclick="navigate('portfolio')">
+    <div class="nav-icon">🖼️</div>
+    <div class="nav-label">Portfolio</div>
+    <div class="nav-pip"></div>
+  </div>
+  <div class="nav-item" id="nav-track" onclick="navigate('track')">
+    <div class="nav-icon">📍</div>
+    <div class="nav-label">Track Order</div>
+    <div class="nav-pip"></div>
+  </div>
+  <div class="nav-item" id="nav-profile" onclick="navigate('profile')">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">Profile</div>
+    <div class="nav-pip"></div>
+  </div>
+</nav>
+
+<!-- WHATSAPP FAB -->
+<div class="whatsapp-tooltip">💬 Chat with Support</div>
+<a href="https://wa.me/923001234567" class="whatsapp-btn" target="_blank" title="WhatsApp Support">
+  <svg viewBox="0 0 24 24" fill="white" width="26" height="26">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+</a>
+
+<script>
+  // ─── NAVIGATION ───
+  function navigate(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const pageEl = document.getElementById('page-' + page);
+    if (pageEl) { pageEl.classList.add('active'); pageEl.classList.remove('fade-in'); void pageEl.offsetWidth; pageEl.classList.add('fade-in'); }
+    const navEl = document.getElementById('nav-' + page);
+    if (navEl) navEl.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  // Map 'orders' to 'track'
+  window.navigate = function(page) {
+    if (page === 'orders') page = 'track';
+    navigate(page);
+  };
+
+  // ─── THEME TOGGLE ───
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+    try { localStorage.setItem('appcraft-theme', isDark ? 'light' : 'dark'); } catch(e) {}
+  }
+  // Restore theme
+  try {
+    const saved = localStorage.getItem('appcraft-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      document.getElementById('themeBtn').textContent = saved === 'dark' ? '🌙' : '☀️';
+    }
+  } catch(e) {}
+
+  // ─── MAINTENANCE MODE ───
+  let maintenanceActive = false;
+  function toggleMaintenance() {
+    maintenanceActive = !maintenanceActive;
+    const el = document.getElementById('maintenance');
+    el.style.display = maintenanceActive ? 'flex' : 'none';
+    if (maintenanceActive) {
+      setTimeout(() => { el.style.display = 'none'; maintenanceActive = false; }, 5000);
+    }
+  }
+
+  // ─── STAT CARD ANIMATION ───
+  function animateStat(card) {
+    card.style.transform = 'scale(0.95)';
+    setTimeout(() => { card.style.transform = ''; }, 150);
+  }
+
+  // ─── NOTIFICATION DEMO ───
+  function showNotif() {
+    alert('🔔 Notifications:\n\n✅ Order #0087 moved to Development\n💰 Payment received: $2,400\n📢 New portfolio project added');
+  }
+
+  // ─── SPLASH AUTO-HIDE ───
+  setTimeout(() => {
+    const splash = document.getElementById('splash');
+    if (splash) { splash.style.display = 'none'; }
+  }, 3500);
+
+  // ─── CHART ANIMATION ───
+  window.addEventListener('load', () => {
+    const bars = document.querySelectorAll('.chart-bar');
+    bars.forEach((bar, i) => {
+      const h = bar.style.height;
+      bar.style.height = '0%';
+      setTimeout(() => { bar.style.height = h; }, 300 + i * 100);
+    });
+  });
+
+  console.log(`
+  ╔═══════════════════════════════════════╗
+  ║    AppCraft by DigitalSpot v2.0       ║
+  ║    Demo File — Standalone HTML        ║
+  ║    © 2024 DigitalSpot Agency          ║
+  ╚═══════════════════════════════════════╝
+  `);
+</script>
+</body>
+</html>

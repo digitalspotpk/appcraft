@@ -1,599 +1,684 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import Link from "next/link";
-import AppLayout from "@/components/AppLayout";
-import TopHeader from "@/components/TopHeader";
-import { useAuth } from "@/contexts/AuthContext";
 import {
-  getDashboardStats,
-  getOrders,
-  getPayments,
-  getSystemConfig,
-  updateSystemConfig,
-  verifyPayment,
-  sendNotification,
-} from "@/lib/firestore-helpers";
+  LayoutDashboard,
+  Package,
+  Users,
+  DollarSign,
+  Settings,
+  Image,
+  Bell,
+  CreditCard,
+  ArrowLeft,
+  TrendingUp,
+  CheckCircle,
+  Clock,
+  XCircle,
+} from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import GlassCard from "@/components/ui/GlassCard";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import toast from "react-hot-toast";
-import type { DashboardStats, Order, Payment, SystemConfig } from "@/types";
 
-const DEFAULT_CONFIG: SystemConfig = {
-  appName: "AppCraft by DigitalSpot",
-  maintenanceMode: false,
-  maintenanceMessage: "We are upgrading our systems. Back shortly!",
-  maintenanceEta: "2 hours",
-  alertBannerActive: true,
-  alertBannerMessage: "🚀 New Feature Live! Real-time order tracking is now available.",
-  alertBannerType: "info",
-  whatsappNumber: "923001234567",
-  pushNotificationsEnabled: true,
-  loyaltyPointsRate: 10,
-  currency: "USD",
-  updatedAt: new Date().toISOString(),
-};
+const TABS = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { key: "orders", label: "Orders", icon: Package },
+  { key: "users", label: "Users", icon: Users },
+  { key: "payments", label: "Payments", icon: DollarSign },
+  { key: "portfolio", label: "Portfolio", icon: Image },
+  { key: "notifications", label: "Alerts", icon: Bell },
+  { key: "payment-methods", label: "Pay Methods", icon: CreditCard },
+  { key: "settings", label: "Settings", icon: Settings },
+];
 
-export default function AdminPage() {
-  const { user, isAdmin, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [tab, setTab] = useState<"dashboard" | "orders" | "payments" | "config" | "broadcast">("dashboard");
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [config, setConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
-  const [loading, setLoading] = useState(true);
-  const [broadcastTitle, setBroadcastTitle] = useState("");
-  const [broadcastMsg, setBroadcastMsg] = useState("");
-  const [sendingBroadcast, setSendingBroadcast] = useState(false);
-  const [savingConfig, setSavingConfig] = useState(false);
+// ─── DASHBOARD TAB ───────────────────────────────────────────────────────────
+function DashboardTab() {
+  const stats = [
+    { icon: "💰", label: "Total Revenue", value: "$24,580", change: "+18%", up: true, color: "#6366f1" },
+    { icon: "📦", label: "Total Orders", value: "87", change: "+12 this month", up: true, color: "#ec4899" },
+    { icon: "✅", label: "Completed", value: "61", change: "70% rate", up: true, color: "#10b981" },
+    { icon: "⏳", label: "Pending Pay", value: "5", change: "$4,200 owed", up: false, color: "#f59e0b" },
+  ];
 
-  // Auth guard
-  useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
-      router.replace("/");
-    }
-  }, [user, isAdmin, authLoading, router]);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [statsData, ordersData, paymentsData, configData] = await Promise.all([
-        getDashboardStats(),
-        getOrders(),
-        getPayments(),
-        getSystemConfig(),
-      ]);
-      setStats(statsData);
-      setOrders(ordersData);
-      setPayments(paymentsData);
-      setConfig(configData);
-    } catch {
-      toast.error("Failed to load admin data");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading && isAdmin) loadData();
-  }, [authLoading, isAdmin, loadData]);
-
-  const handleVerifyPayment = async (id: string, approved: boolean) => {
-    try {
-      await verifyPayment(id, approved);
-      toast.success(approved ? "Payment approved! ✅" : "Payment rejected");
-      setPayments((prev) =>
-        prev.map((p) =>
-          p.id === id
-            ? { ...p, status: approved ? "verified" : "rejected" }
-            : p
-        )
-      );
-    } catch {
-      toast.error("Failed to update payment");
-    }
-  };
-
-  const handleSaveConfig = async () => {
-    setSavingConfig(true);
-    try {
-      await updateSystemConfig(config);
-      toast.success("Configuration saved! 💾");
-    } catch {
-      toast.error("Failed to save config");
-    } finally {
-      setSavingConfig(false);
-    }
-  };
-
-  const handleBroadcast = async () => {
-    if (!broadcastTitle || !broadcastMsg) {
-      toast.error("Please fill all fields");
-      return;
-    }
-    setSendingBroadcast(true);
-    try {
-      await sendNotification({
-        userId: "broadcast",
-        title: broadcastTitle,
-        message: broadcastMsg,
-        type: "broadcast",
-        isRead: false,
-        isBroadcast: true,
-        actionUrl: undefined,
-      });
-      toast.success("Broadcast sent to all users! 📢");
-      setBroadcastTitle("");
-      setBroadcastMsg("");
-    } catch {
-      toast.error("Failed to send broadcast");
-    } finally {
-      setSendingBroadcast(false);
-    }
-  };
-
-  if (!isAdmin && !authLoading) return null;
-
-  const pendingPayments = payments.filter((p) => p.status === "pending");
-  const activeOrders = orders.filter((o) => !["completed", "cancelled"].includes(o.status));
+  const recentOrders = [
+    { id: "001", title: "E-Commerce Platform", client: "ZaynTech", amount: 2400, status: "active", stage: "development" },
+    { id: "002", title: "Mobile App UI", client: "FoodieHub", amount: 1800, status: "pending", stage: "design" },
+    { id: "003", title: "AI Chatbot", client: "BotWorks", amount: 3200, status: "completed", stage: "delivery" },
+    { id: "004", title: "Real Estate Portal", client: "PropMax", amount: 4500, status: "active", stage: "testing" },
+  ];
 
   return (
-    <AppLayout>
-      <TopHeader title="Admin Panel ⚙️" />
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((s, i) => (
+          <motion.div
+            key={s.label}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08 }}
+            className="p-4 rounded-2xl border border-white/10 bg-white/5"
+          >
+            <div className="text-xl mb-2">{s.icon}</div>
+            <div className="text-xl font-black text-white">{s.value}</div>
+            <div className="text-xs text-slate-400 mt-0.5">{s.label}</div>
+            <div className={`text-[10px] font-semibold mt-1.5 ${s.up ? "text-emerald-400" : "text-red-400"}`}>
+              {s.change}
+            </div>
+          </motion.div>
+        ))}
+      </div>
 
-      <main className="page-content animate-fade-in">
-        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-          <div>
-            <h2 className="section-title">
-              ⚙️ <span>Admin Panel</span>
-            </h2>
-          </div>
-          <span className="px-2.5 py-1 bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold rounded-full">
-            Super Admin
-          </span>
+      {/* Revenue Chart */}
+      <GlassCard className="p-4" animate={false}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-white">📈 Monthly Revenue</h3>
+          <TrendingUp size={16} className="text-indigo-400" />
         </div>
-
-        {/* Tab bar */}
-        <div className="mx-5 mb-4 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-1.5 flex gap-1 overflow-x-auto">
-          {([
-            { key: "dashboard", label: "📊 Stats" },
-            { key: "orders", label: "📦 Orders" },
-            { key: "payments", label: "💰 Payments" },
-            { key: "config", label: "⚙️ Config" },
-            { key: "broadcast", label: "📢 Notify" },
-          ] as const).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`flex-shrink-0 flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                tab === key
-                  ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              {label}
-            </button>
+        <div className="flex items-end gap-1.5 h-20">
+          {[40, 55, 35, 70, 85, 60, 90, 45, 75, 65, 80, 100].map((h, i) => (
+            <motion.div
+              key={i}
+              className="flex-1 rounded-t-sm"
+              initial={{ height: 0 }}
+              animate={{ height: `${h}%` }}
+              transition={{ delay: 0.2 + i * 0.04 }}
+              style={{
+                background: i === 11
+                  ? "linear-gradient(180deg, #6366f1, #ec4899)"
+                  : i % 2 === 0
+                  ? "rgba(99,102,241,0.4)"
+                  : "rgba(236,72,153,0.3)",
+              }}
+            />
           ))}
         </div>
+        <div className="flex gap-1.5 mt-1">
+          {["J","F","M","A","M","J","J","A","S","O","N","D"].map((m, i) => (
+            <div key={i} className="flex-1 text-center text-[8px] text-slate-500">{m}</div>
+          ))}
+        </div>
+      </GlassCard>
 
-        {loading ? (
-          <div className="px-5 grid grid-cols-2 gap-3">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="skeleton h-24 rounded-2xl" />
+      {/* Recent Orders */}
+      <GlassCard className="p-4" animate={false}>
+        <h3 className="text-sm font-bold text-white mb-3">🗂 Recent Orders</h3>
+        <div className="space-y-2">
+          {recentOrders.map((o) => (
+            <div key={o.id} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center text-sm">
+                📦
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{o.title}</p>
+                <p className="text-[10px] text-slate-400">{o.client} · {o.stage}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-bold text-white">${o.amount.toLocaleString()}</p>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                  o.status === "active" ? "bg-emerald-500/15 text-emerald-400"
+                  : o.status === "completed" ? "bg-indigo-500/15 text-indigo-400"
+                  : "bg-amber-500/15 text-amber-400"
+                }`}>
+                  {o.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+    </div>
+  );
+}
+
+// ─── ORDERS TAB ──────────────────────────────────────────────────────────────
+function OrdersTab() {
+  const orders = [
+    { id: "ORD001", title: "E-Commerce Platform", client: "ZaynTech", amount: 2400, status: "active", stage: "development", deadline: "Dec 30" },
+    { id: "ORD002", title: "Mobile App UI", client: "FoodieHub", amount: 1800, status: "pending", stage: "design", deadline: "Jan 5" },
+    { id: "ORD003", title: "AI Chatbot", client: "BotWorks", amount: 3200, status: "active", stage: "testing", deadline: "Jan 12" },
+    { id: "ORD004", title: "Real Estate Portal", client: "PropMax", amount: 4500, status: "completed", stage: "delivery", deadline: "Dec 20" },
+    { id: "ORD005", title: "LMS Platform", client: "EduTech", amount: 5800, status: "active", stage: "requirements", deadline: "Feb 1" },
+  ];
+
+  const STAGES = ["requirements", "design", "development", "testing", "delivery"];
+
+  const handleStageUpdate = (id: string, stage: string) => {
+    toast.success(`Order ${id} moved to ${stage}`);
+  };
+
+  return (
+    <div className="space-y-3">
+      {orders.map((o, i) => (
+        <motion.div
+          key={o.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.07 }}
+          className="p-4 rounded-2xl border border-white/10 bg-white/5"
+        >
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div>
+              <p className="text-[10px] text-slate-500 font-mono">#{o.id}</p>
+              <p className="text-sm font-bold text-white">{o.title}</p>
+              <p className="text-xs text-slate-400">{o.client} · Due {o.deadline}</p>
+            </div>
+            <span className="text-sm font-black text-white">${o.amount.toLocaleString()}</span>
+          </div>
+          {/* Stage Selector */}
+          <div className="flex gap-1 flex-wrap mt-2">
+            {STAGES.map((stage) => (
+              <button
+                key={stage}
+                onClick={() => handleStageUpdate(o.id, stage)}
+                className={`text-[9px] font-bold px-2 py-1 rounded-full transition-all ${
+                  o.stage === stage
+                    ? "text-white"
+                    : "text-slate-400 bg-white/5 hover:bg-white/10"
+                }`}
+                style={o.stage === stage ? { background: "linear-gradient(135deg, #6366f1, #ec4899)" } : {}}
+              >
+                {stage}
+              </button>
             ))}
           </div>
-        ) : (
-          <>
-            {/* DASHBOARD TAB */}
-            {tab === "dashboard" && stats && (
-              <div className="px-5 animate-fade-in">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {[
-                    { icon: "📦", label: "Total Orders", value: stats.totalOrders.toString(), sub: `${stats.activeOrders} active` },
-                    { icon: "💰", label: "Total Revenue", value: `$${(stats.totalRevenue / 1000).toFixed(1)}k`, sub: "Verified payments" },
-                    { icon: "📈", label: "This Month", value: `$${(stats.monthlyRevenue / 1000).toFixed(1)}k`, sub: "Monthly revenue" },
-                    { icon: "⏳", label: "Pending", value: `$${(stats.pendingRevenue / 1000).toFixed(1)}k`, sub: "Awaiting approval" },
-                    { icon: "✅", label: "Completed", value: stats.completedOrders.toString(), sub: "Delivered" },
-                    { icon: "👥", label: "Clients", value: stats.totalClients.toString(), sub: "Registered users" },
-                    { icon: "🎫", label: "Open Tickets", value: stats.openTickets.toString(), sub: "Support queue" },
-                    { icon: "💳", label: "Pending Pays", value: stats.pendingPayments.toString(), sub: "Need verification" },
-                  ].map(({ icon, label, value, sub }) => (
-                    <div
-                      key={label}
-                      className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 hover:border-violet-500/30 transition-all"
-                    >
-                      <p className="text-2xl mb-1">{icon}</p>
-                      <p className="text-[10px] text-[var(--text-muted)] font-semibold uppercase tracking-widest">
-                        {label}
-                      </p>
-                      <p className="text-2xl font-extrabold gradient-text my-0.5">
-                        {value}
-                      </p>
-                      <p className="text-[10px] text-[var(--text-muted)]">{sub}</p>
-                    </div>
-                  ))}
-                </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
-                {/* Quick actions */}
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <Link href="/admin/users">
-                    <button className="w-full py-3 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl text-sm font-bold text-[var(--text-primary)] flex items-center justify-center gap-2 hover:border-violet-500/50 transition-all">
-                      👥 Manage Users
-                    </button>
-                  </Link>
-                  <Link href="/portfolio">
-                    <button className="w-full py-3 bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl text-sm font-bold text-[var(--text-primary)] flex items-center justify-center gap-2 hover:border-violet-500/50 transition-all">
-                      🎨 Portfolio
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            )}
+// ─── PAYMENTS TAB ─────────────────────────────────────────────────────────────
+function PaymentsTab() {
+  const [payments, setPayments] = useState([
+    { id: "P001", client: "ZaynTech", order: "E-Commerce Platform", amount: 2400, method: "JazzCash", txId: "JC-789456", status: "pending", date: "Dec 22" },
+    { id: "P002", client: "FoodieHub", order: "Mobile App", amount: 1800, method: "EasyPaisa", txId: "EP-123789", status: "pending", date: "Dec 21" },
+    { id: "P003", client: "BotWorks", order: "AI Chatbot", amount: 1600, method: "Bank Transfer", txId: "BT-456123", status: "approved", date: "Dec 20" },
+  ]);
 
-            {/* ORDERS TAB */}
-            {tab === "orders" && (
-              <div className="px-5 animate-fade-in">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm text-[var(--text-muted)]">
-                    {activeOrders.length} active orders
-                  </p>
-                  <Link href="/orders/new">
-                    <button className="px-4 py-1.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white text-xs font-bold rounded-xl">
-                      + New Order
-                    </button>
-                  </Link>
-                </div>
-                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl overflow-hidden">
-                  {orders.length === 0 ? (
-                    <div className="p-8 text-center text-[var(--text-muted)]">
-                      <p className="text-3xl mb-2">📭</p>
-                      <p className="text-sm">No orders yet</p>
-                    </div>
-                  ) : (
-                    orders.slice(0, 15).map((order, i) => (
-                      <Link key={order.id} href={`/orders/${order.id}`}>
-                        <div
-                          className={`p-4 flex items-center gap-3 hover:bg-[var(--bg-card-hover)] transition-all cursor-pointer ${
-                            i < orders.length - 1
-                              ? "border-b border-[var(--border)]"
-                              : ""
-                          }`}
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-[var(--text-primary)] text-sm truncate">
-                              {order.title}
-                            </p>
-                            <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                              {order.clientName} · {order.progress}%
-                            </p>
-                          </div>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex-shrink-0 ${
-                              order.status === "completed"
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : order.status === "development"
-                                ? "bg-violet-500/20 text-violet-400"
-                                : "bg-gray-500/20 text-gray-400"
-                            }`}
-                          >
-                            {order.status}
-                          </span>
-                          <span className="text-[var(--text-muted)] text-sm">›</span>
-                        </div>
-                      </Link>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+  const handleApprove = (id: string) => {
+    setPayments(prev => prev.map(p => p.id === id ? { ...p, status: "approved" } : p));
+    toast.success("Payment approved! ✅");
+  };
 
-            {/* PAYMENTS TAB */}
-            {tab === "payments" && (
-              <div className="px-5 animate-fade-in">
-                {pendingPayments.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-sm font-bold text-amber-400 mb-2">
-                      ⏳ {pendingPayments.length} Pending Verification
-                    </p>
-                    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl overflow-hidden">
-                      {pendingPayments.map((payment, i) => (
-                        <div
-                          key={payment.id}
-                          className={`p-4 ${i < pendingPayments.length - 1 ? "border-b border-[var(--border)]" : ""}`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="font-semibold text-[var(--text-primary)] text-sm">
-                                {payment.clientName}
-                              </p>
-                              <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                                {payment.methodName} · TXN: {payment.transactionId}
-                              </p>
-                            </div>
-                            <p className="font-extrabold text-emerald-400 text-base">
-                              {payment.currency} {payment.amount.toLocaleString()}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleVerifyPayment(payment.id, true)}
-                              className="flex-1 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold rounded-xl hover:bg-emerald-500/30 transition-all"
-                            >
-                              ✅ Approve
-                            </button>
-                            <button
-                              onClick={() => handleVerifyPayment(payment.id, false)}
-                              className="flex-1 py-2 bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold rounded-xl hover:bg-red-500/30 transition-all"
-                            >
-                              ✕ Reject
-                            </button>
-                            {payment.receiptUrl && (
-                              <a
-                                href={payment.receiptUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-2 bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text-muted)] text-xs font-bold rounded-xl hover:border-violet-500/50 transition-all"
-                              >
-                                📷
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+  const handleReject = (id: string) => {
+    setPayments(prev => prev.map(p => p.id === id ? { ...p, status: "rejected" } : p));
+    toast.error("Payment rejected.");
+  };
 
-                <p className="text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  All Payments
-                </p>
-                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl overflow-hidden">
-                  {payments.length === 0 ? (
-                    <div className="p-8 text-center text-[var(--text-muted)]">
-                      <p className="text-3xl mb-2">💳</p>
-                      <p className="text-sm">No payments yet</p>
-                    </div>
-                  ) : (
-                    payments.slice(0, 20).map((payment, i) => (
-                      <div
-                        key={payment.id}
-                        className={`p-4 flex items-center gap-3 ${i < payments.length - 1 ? "border-b border-[var(--border)]" : ""}`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-[var(--text-primary)] text-sm">
-                            {payment.clientName}
-                          </p>
-                          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                            {payment.methodName} · {new Date(payment.submittedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <p className="font-bold text-sm text-emerald-400">
-                          {payment.currency} {payment.amount.toLocaleString()}
-                        </p>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            payment.status === "verified"
-                              ? "bg-emerald-500/20 text-emerald-400"
-                              : payment.status === "rejected"
-                              ? "bg-red-500/20 text-red-400"
-                              : "bg-amber-500/20 text-amber-400"
-                          }`}
-                        >
-                          {payment.status}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
+  return (
+    <div className="space-y-3">
+      {payments.map((p, i) => (
+        <motion.div
+          key={p.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.07 }}
+          className="p-4 rounded-2xl border border-white/10 bg-white/5"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] text-slate-500 font-mono">#{p.id}</p>
+              <p className="text-sm font-bold text-white">{p.client}</p>
+              <p className="text-xs text-slate-400">{p.order} · {p.method}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">TX: {p.txId} · {p.date}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-base font-black text-white">${p.amount.toLocaleString()}</p>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                p.status === "approved" ? "bg-emerald-500/15 text-emerald-400"
+                : p.status === "rejected" ? "bg-red-500/15 text-red-400"
+                : "bg-amber-500/15 text-amber-400"
+              }`}>
+                {p.status}
+              </span>
+            </div>
+          </div>
+          {p.status === "pending" && (
+            <div className="flex gap-2 mt-3">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleApprove(p.id)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold text-white"
+                style={{ background: "linear-gradient(135deg, #10b981, #34d399)" }}
+              >
+                <CheckCircle size={13} /> Approve
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleReject(p.id)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold bg-red-500/15 text-red-400 border border-red-500/20"
+              >
+                <XCircle size={13} /> Reject
+              </motion.button>
+            </div>
+          )}
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
-            {/* CONFIG TAB */}
-            {tab === "config" && (
-              <div className="px-5 animate-fade-in flex flex-col gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                    App Name
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={config.appName}
-                    onChange={(e) =>
-                      setConfig((c) => ({ ...c, appName: e.target.value }))
-                    }
-                  />
-                </div>
+// ─── SETTINGS TAB ────────────────────────────────────────────────────────────
+function SettingsTab() {
+  const [config, setConfig] = useState({
+    appName: "AppCraft by DigitalSpot",
+    maintenanceMode: false,
+    globalAlertText: "🎉 JazzCash & EasyPaisa payments now available!",
+    whatsappNumber: "+923001234567",
+    currency: "USD",
+  });
+  const [saving, setSaving] = useState(false);
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                    WhatsApp Number
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={config.whatsappNumber}
-                    onChange={(e) =>
-                      setConfig((c) => ({ ...c, whatsappNumber: e.target.value }))
-                    }
-                    placeholder="923001234567"
-                  />
-                </div>
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { updateAppConfig } = await import("@/lib/firestore");
+      await updateAppConfig(config);
+      toast.success("Settings saved successfully! ✅");
+    } catch {
+      toast.error("Failed to save. Check Firebase connection.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-                {/* Toggles */}
-                {[
-                  { key: "maintenanceMode", label: "🔧 Maintenance Mode", desc: "Show maintenance screen to clients" },
-                  { key: "alertBannerActive", label: "📢 Alert Banner", desc: "Show home page alert" },
-                  { key: "pushNotificationsEnabled", label: "🔔 Push Notifications", desc: "Global notification system" },
-                ].map(({ key, label, desc }) => (
-                  <div
-                    key={key}
-                    className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">
-                        {label}
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)] mt-0.5">{desc}</p>
-                    </div>
-                    <button
-                      className={`toggle-switch ${config[key as keyof SystemConfig] ? "on" : ""}`}
-                      onClick={() =>
-                        setConfig((c) => ({
-                          ...c,
-                          [key]: !c[key as keyof SystemConfig],
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
+  return (
+    <div className="space-y-4">
+      <GlassCard className="p-4" animate={false}>
+        <h3 className="text-sm font-bold text-white mb-4">⚙️ System Configuration</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-slate-400 mb-1.5 block">App Name</label>
+            <input
+              type="text"
+              value={config.appName}
+              onChange={e => setConfig(p => ({ ...p, appName: e.target.value }))}
+              className="input-glass text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Global Alert Text</label>
+            <input
+              type="text"
+              value={config.globalAlertText}
+              onChange={e => setConfig(p => ({ ...p, globalAlertText: e.target.value }))}
+              className="input-glass text-sm"
+              placeholder="Leave empty to hide banner"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-400 mb-1.5 block">WhatsApp Number</label>
+            <input
+              type="text"
+              value={config.whatsappNumber}
+              onChange={e => setConfig(p => ({ ...p, whatsappNumber: e.target.value }))}
+              className="input-glass text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-400 mb-1.5 block">Currency</label>
+            <select
+              value={config.currency}
+              onChange={e => setConfig(p => ({ ...p, currency: e.target.value }))}
+              className="input-glass text-sm"
+            >
+              <option value="USD">USD — US Dollar</option>
+              <option value="PKR">PKR — Pakistani Rupee</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — British Pound</option>
+            </select>
+          </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                    Maintenance Message
-                  </label>
-                  <textarea
-                    className="form-textarea"
-                    rows={2}
-                    value={config.maintenanceMessage}
-                    onChange={(e) =>
-                      setConfig((c) => ({ ...c, maintenanceMessage: e.target.value }))
-                    }
-                  />
-                </div>
+          {/* Maintenance Mode Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-white/5">
+            <div>
+              <p className="text-sm font-semibold text-white">Maintenance Mode</p>
+              <p className="text-xs text-slate-400">Show upgrade screen to all non-admin users</p>
+            </div>
+            <button
+              onClick={() => setConfig(p => ({ ...p, maintenanceMode: !p.maintenanceMode }))}
+              className={`relative w-12 h-6 rounded-full transition-all ${
+                config.maintenanceMode ? "bg-red-500" : "bg-white/20"
+              }`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
+                config.maintenanceMode ? "left-6" : "left-0.5"
+              }`} />
+            </button>
+          </div>
+        </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                    Maintenance ETA
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={config.maintenanceEta}
-                    onChange={(e) =>
-                      setConfig((c) => ({ ...c, maintenanceEta: e.target.value }))
-                    }
-                    placeholder="e.g. 2 hours"
-                  />
-                </div>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full mt-4 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2"
+          style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
+        >
+          {saving ? (
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : "💾 Save Settings"}
+        </motion.button>
+      </GlassCard>
+    </div>
+  );
+}
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                    Alert Banner Message
-                  </label>
-                  <textarea
-                    className="form-textarea"
-                    rows={2}
-                    value={config.alertBannerMessage}
-                    onChange={(e) =>
-                      setConfig((c) => ({ ...c, alertBannerMessage: e.target.value }))
-                    }
-                  />
-                </div>
+// ─── USERS TAB ───────────────────────────────────────────────────────────────
+function UsersTab() {
+  const users = [
+    { id: "u1", name: "Ahmed Hassan", email: "ahmed@zayntech.com", role: "client", orders: 5, spent: "$8,400", joined: "Oct 2024" },
+    { id: "u2", name: "Sara Khan", email: "sara@foodiehub.com", role: "client", orders: 3, spent: "$5,200", joined: "Nov 2024" },
+    { id: "u3", name: "Ali Raza", email: "ali@botworks.com", role: "client", orders: 2, spent: "$3,200", joined: "Dec 2024" },
+    { id: "u4", name: "Admin User", email: "admin@digitalspot.com", role: "admin", orders: 0, spent: "$0", joined: "Jan 2024" },
+  ];
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                    Alert Type
-                  </label>
-                  <select
-                    className="form-select"
-                    value={config.alertBannerType}
-                    onChange={(e) =>
-                      setConfig((c) => ({
-                        ...c,
-                        alertBannerType: e.target.value as SystemConfig["alertBannerType"],
-                      }))
-                    }
-                  >
-                    <option value="info">ℹ️ Info</option>
-                    <option value="success">✅ Success</option>
-                    <option value="warning">⚠️ Warning</option>
-                    <option value="danger">🚨 Danger</option>
-                  </select>
-                </div>
+  return (
+    <div className="space-y-3">
+      {users.map((u, i) => (
+        <motion.div
+          key={u.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.07 }}
+          className="flex items-center gap-3 p-4 rounded-2xl border border-white/10 bg-white/5"
+        >
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0"
+            style={{ background: u.role === "admin" ? "linear-gradient(135deg, #6366f1, #ec4899)" : "rgba(99,102,241,0.15)" }}
+          >
+            {u.role === "admin" ? "👨‍💼" : "👤"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-white truncate">{u.name}</p>
+            <p className="text-[10px] text-slate-400">{u.email}</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">
+              {u.orders} orders · {u.spent} · Joined {u.joined}
+            </p>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+            u.role === "admin"
+              ? "bg-indigo-500/20 text-indigo-400"
+              : "bg-emerald-500/10 text-emerald-400"
+          }`}>
+            {u.role}
+          </span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
-                <button
-                  className="btn-primary"
-                  onClick={handleSaveConfig}
-                  disabled={savingConfig}
-                >
-                  {savingConfig ? "Saving..." : "💾 Save Configuration"}
-                </button>
-              </div>
-            )}
+// ─── PORTFOLIO TAB ───────────────────────────────────────────────────────────
+function PortfolioTab() {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", description: "", tags: "", iframeUrl: "", category: "Web App" });
 
-            {/* BROADCAST TAB */}
-            {tab === "broadcast" && (
-              <div className="px-5 animate-fade-in flex flex-col gap-4">
-                <div className="bg-violet-500/10 border border-violet-500/30 rounded-2xl p-4 text-sm text-violet-300">
-                  📢 Send a notification to <strong>all users</strong> at once.
-                </div>
+  const handleAdd = () => {
+    if (!form.title) { toast.error("Title is required."); return; }
+    toast.success(`Portfolio project "${form.title}" added! ✅`);
+    setShowForm(false);
+    setForm({ title: "", description: "", tags: "", iframeUrl: "", category: "Web App" });
+  };
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                    Notification Title *
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. System Maintenance"
-                    value={broadcastTitle}
-                    onChange={(e) => setBroadcastTitle(e.target.value)}
-                  />
-                </div>
+  return (
+    <div className="space-y-4">
+      {!showForm ? (
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setShowForm(true)}
+          className="w-full py-3 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2"
+          style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
+        >
+          ➕ Add Portfolio Project
+        </motion.button>
+      ) : (
+        <GlassCard className="p-4" animate={false}>
+          <h3 className="text-sm font-bold text-white mb-4">Add Project</h3>
+          <div className="space-y-3">
+            <input type="text" placeholder="Project Title *" value={form.title} onChange={e => setForm(p => ({...p, title: e.target.value}))} className="input-glass text-sm" />
+            <textarea placeholder="Description" value={form.description} onChange={e => setForm(p => ({...p, description: e.target.value}))} className="input-glass text-sm resize-none" rows={3} />
+            <input type="text" placeholder="Tags (comma separated)" value={form.tags} onChange={e => setForm(p => ({...p, tags: e.target.value}))} className="input-glass text-sm" />
+            <input type="url" placeholder="iframe URL (optional)" value={form.iframeUrl} onChange={e => setForm(p => ({...p, iframeUrl: e.target.value}))} className="input-glass text-sm" />
+            <select value={form.category} onChange={e => setForm(p => ({...p, category: e.target.value}))} className="input-glass text-sm">
+              <option>Web App</option>
+              <option>Mobile App</option>
+              <option>AI/ML</option>
+              <option>SaaS</option>
+              <option>E-Commerce</option>
+            </select>
+            <div className="flex gap-2">
+              <button onClick={handleAdd} className="flex-1 py-2.5 rounded-xl text-white text-sm font-bold" style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}>
+                Save Project
+              </button>
+              <button onClick={() => setShowForm(false)} className="px-4 py-2.5 rounded-xl text-sm font-bold bg-white/5 border border-white/10 text-slate-400">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </GlassCard>
+      )}
 
-                <div>
-                  <label className="block text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-1.5">
-                    Message *
-                  </label>
-                  <textarea
-                    className="form-textarea"
-                    rows={4}
-                    placeholder="Enter the broadcast message..."
-                    value={broadcastMsg}
-                    onChange={(e) => setBroadcastMsg(e.target.value)}
-                  />
-                </div>
+      <p className="text-xs text-slate-500 text-center">
+        Projects are stored in Firestore and displayed on the Portfolio page.
+      </p>
+    </div>
+  );
+}
 
-                <button
-                  className="btn-primary"
-                  onClick={handleBroadcast}
-                  disabled={sendingBroadcast}
-                >
-                  {sendingBroadcast ? "Sending..." : "📢 Send Broadcast"}
-                </button>
+// ─── NOTIFICATIONS TAB ───────────────────────────────────────────────────────
+function NotificationsTab() {
+  const [form, setForm] = useState({ title: "", message: "", target: "all", type: "info" });
+  const [sending, setSending] = useState(false);
 
-                <div className="mt-2">
-                  <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wide mb-3">
-                    Quick Templates
-                  </p>
-                  {[
-                    { title: "🔧 Maintenance Notice", msg: "We will be performing scheduled maintenance on our systems. Services may be temporarily unavailable." },
-                    { title: "🎉 New Feature!", msg: "We have just launched an exciting new feature! Log in to check it out." },
-                    { title: "⭐ Loyalty Bonus", msg: "Double loyalty points this week! Place an order and earn 2x points on your purchase." },
-                  ].map((tpl) => (
-                    <button
-                      key={tpl.title}
-                      onClick={() => {
-                        setBroadcastTitle(tpl.title);
-                        setBroadcastMsg(tpl.msg);
-                      }}
-                      className="w-full text-left bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-3.5 mb-2 hover:border-violet-500/40 transition-all"
-                    >
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">
-                        {tpl.title}
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)] mt-1 line-clamp-1">
-                        {tpl.msg}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </main>
-    </AppLayout>
+  const handleSend = async () => {
+    if (!form.title || !form.message) { toast.error("Fill in all fields."); return; }
+    setSending(true);
+    try {
+      const { createDocument } = await import("@/lib/firestore");
+      await createDocument("notifications", { ...form, isRead: false });
+      toast.success("Notification sent! 🔔");
+      setForm({ title: "", message: "", target: "all", type: "info" });
+    } catch {
+      toast.error("Failed to send notification.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <GlassCard className="p-4" animate={false}>
+      <h3 className="text-sm font-bold text-white mb-4">📣 Send Notification</h3>
+      <div className="space-y-3">
+        <input type="text" placeholder="Title" value={form.title} onChange={e => setForm(p => ({...p, title: e.target.value}))} className="input-glass text-sm" />
+        <textarea placeholder="Message" value={form.message} onChange={e => setForm(p => ({...p, message: e.target.value}))} className="input-glass text-sm resize-none" rows={3} />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-slate-400 mb-1 block">Target</label>
+            <select value={form.target} onChange={e => setForm(p => ({...p, target: e.target.value}))} className="input-glass text-sm py-2">
+              <option value="all">All Users</option>
+              <option value="userId">Specific User</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-400 mb-1 block">Type</label>
+            <select value={form.type} onChange={e => setForm(p => ({...p, type: e.target.value}))} className="input-glass text-sm py-2">
+              <option value="info">ℹ️ Info</option>
+              <option value="success">✅ Success</option>
+              <option value="warning">⚠️ Warning</option>
+              <option value="error">❌ Error</option>
+            </select>
+          </div>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSend}
+          disabled={sending}
+          className="w-full py-3 rounded-xl text-white text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2"
+          style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
+        >
+          {sending ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "🔔 Send Notification"}
+        </motion.button>
+      </div>
+    </GlassCard>
+  );
+}
+
+// ─── PAYMENT METHODS TAB ─────────────────────────────────────────────────────
+function PaymentMethodsTab() {
+  const [methods, setMethods] = useState([
+    { id: "jc", name: "JazzCash", type: "jazzcash", accountNumber: "0300-1234567", accountTitle: "DigitalSpot", isActive: true },
+    { id: "ep", name: "EasyPaisa", type: "easypaisa", accountNumber: "0333-7654321", accountTitle: "DigitalSpot", isActive: true },
+    { id: "bt", name: "Bank Transfer", type: "bank", accountNumber: "PK36MEZN0001234567", accountTitle: "DigitalSpot", bankName: "Meezan Bank", isActive: false },
+  ]);
+
+  const toggle = (id: string) => {
+    setMethods(prev => prev.map(m => m.id === id ? { ...m, isActive: !m.isActive } : m));
+    toast.success("Payment method updated!");
+  };
+
+  return (
+    <div className="space-y-3">
+      {methods.map((m, i) => (
+        <motion.div
+          key={m.id}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.07 }}
+          className="flex items-center gap-3 p-4 rounded-2xl border border-white/10 bg-white/5"
+        >
+          <div className="text-2xl">
+            {m.type === "jazzcash" ? "📲" : m.type === "easypaisa" ? "💚" : "🏦"}
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-white">{m.name}</p>
+            <p className="text-[10px] text-slate-400">{m.accountNumber} · {m.accountTitle}</p>
+            {m.bankName && <p className="text-[10px] text-slate-500">{m.bankName}</p>}
+          </div>
+          <button
+            onClick={() => toggle(m.id)}
+            className={`relative w-12 h-6 rounded-full transition-all ${m.isActive ? "bg-indigo-500" : "bg-white/20"}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${m.isActive ? "left-6" : "left-0.5"}`} />
+          </button>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+// ─── MAIN ADMIN PAGE ─────────────────────────────────────────────────────────
+export default function AdminPage() {
+  const { isAdmin, loading } = useAuth();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("dashboard");
+
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      router.push("/");
+    }
+  }, [isAdmin, loading, router]);
+
+  if (loading) {
+    return (
+      <div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ background: "#0f0f1a" }}
+      >
+        <LoadingSpinner size="lg" text="Verifying admin access..." />
+      </div>
+    );
+  }
+
+  if (!isAdmin) return null;
+
+  const renderTab = () => {
+    switch (activeTab) {
+      case "dashboard": return <DashboardTab />;
+      case "orders": return <OrdersTab />;
+      case "users": return <UsersTab />;
+      case "payments": return <PaymentsTab />;
+      case "portfolio": return <PortfolioTab />;
+      case "notifications": return <NotificationsTab />;
+      case "payment-methods": return <PaymentMethodsTab />;
+      case "settings": return <SettingsTab />;
+      default: return <DashboardTab />;
+    }
+  };
+
+  const currentTab = TABS.find(t => t.key === activeTab);
+
+  return (
+    <div
+      className="min-h-screen"
+      style={{ background: "linear-gradient(135deg, #0f0f1a 0%, #1a0a2e 40%, #0d1b4b 100%)" }}
+    >
+      {/* Admin Header */}
+      <header
+        className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 border-b border-white/10"
+        style={{ background: "rgba(15,15,26,0.9)", backdropFilter: "blur(20px)" }}
+      >
+        <Link href="/" className="text-slate-400 hover:text-white transition-colors">
+          <ArrowLeft size={18} />
+        </Link>
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
+        >
+          🛡️
+        </div>
+        <div>
+          <h1 className="text-sm font-bold text-white">Admin Panel</h1>
+          <p className="text-[10px] text-slate-400">AppCraft by DigitalSpot</p>
+        </div>
+      </header>
+
+      <div className="max-w-lg mx-auto">
+        {/* Tab Bar — Horizontal Scroll */}
+        <div className="flex gap-1.5 overflow-x-auto px-3 pt-3 pb-0 -mb-px">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                  activeTab === tab.key
+                    ? "text-white border-transparent"
+                    : "text-slate-400 border-white/10 bg-white/5 hover:bg-white/10"
+                }`}
+                style={activeTab === tab.key ? { background: "linear-gradient(135deg, #6366f1, #ec4899)" } : {}}
+              >
+                <Icon size={12} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        <div className="px-3 pt-4 pb-8">
+          <div className="flex items-center gap-2 mb-4">
+            {currentTab && <currentTab.icon size={16} className="text-indigo-400" />}
+            <h2 className="text-base font-bold text-white">{currentTab?.label}</h2>
+          </div>
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {renderTab()}
+          </motion.div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,224 +1,279 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import AppLayout from "@/components/AppLayout";
-import TopHeader from "@/components/TopHeader";
-import { getPortfolioProjects } from "@/lib/firestore-helpers";
-import type { PortfolioProject } from "@/types";
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import AppShell from "@/components/layout/AppShell";
+import GlassCard from "@/components/ui/GlassCard";
+import { getPortfolioProjects, type PortfolioProject } from "@/lib/firestore";
+import { ExternalLink } from "lucide-react";
 
-// Fallback demo projects
+// Demo portfolio projects (shown when Firebase not configured)
 const DEMO_PROJECTS: PortfolioProject[] = [
-  { id: "1", title: "ShopFlow Pro", category: "E-Commerce", description: "A full-featured mobile e-commerce platform with real-time inventory, payments, and order tracking.", iframeUrl: "", tags: ["React Native", "Firebase", "Stripe"], isLive: true, isFeatured: true, gradient: "linear-gradient(135deg,#7c3aed,#06b6d4)", icon: "🛒", sortOrder: 1, createdAt: "" },
-  { id: "2", title: "MetricsPulse", category: "SaaS Dashboard", description: "Real-time analytics dashboard for business intelligence with beautiful charts.", iframeUrl: "", tags: ["Next.js", "PostgreSQL", "D3.js"], isLive: true, isFeatured: true, gradient: "linear-gradient(135deg,#f59e0b,#ef4444)", icon: "📊", sortOrder: 2, createdAt: "" },
-  { id: "3", title: "QuickBite", category: "Food Delivery", description: "Multi-vendor food delivery app with live driver tracking and smart restaurant matching.", iframeUrl: "", tags: ["Flutter", "Node.js", "Google Maps"], isLive: true, isFeatured: false, gradient: "linear-gradient(135deg,#10b981,#06b6d4)", icon: "🍔", sortOrder: 3, createdAt: "" },
-  { id: "4", title: "EstateView", category: "Real Estate", description: "Premium property listing platform with virtual tours and mortgage calculator.", iframeUrl: "", tags: ["Vue.js", "Laravel", "AWS"], isLive: false, isFeatured: false, gradient: "linear-gradient(135deg,#8b5cf6,#ec4899)", icon: "🏠", sortOrder: 4, createdAt: "" },
-  { id: "5", title: "FitTrack 360", category: "Health & Fitness", description: "Comprehensive workout tracking app with AI-powered coaching and nutrition plans.", iframeUrl: "", tags: ["React Native", "Python", "TensorFlow"], isLive: true, isFeatured: true, gradient: "linear-gradient(135deg,#0f766e,#14b8a6)", icon: "💪", sortOrder: 5, createdAt: "" },
-  { id: "6", title: "WalletX", category: "FinTech", description: "Secure digital wallet with multi-currency support, crypto integration, and instant transfers.", iframeUrl: "", tags: ["React Native", "Node.js", "Blockchain"], isLive: true, isFeatured: false, gradient: "linear-gradient(135deg,#0e7490,#0284c7)", icon: "💳", sortOrder: 6, createdAt: "" },
+  {
+    id: "p1",
+    title: "ShopNow — E-Commerce Platform",
+    description:
+      "Full-stack e-commerce with Next.js 14, Stripe integration, real-time inventory management and admin dashboard.",
+    tags: ["Next.js", "Stripe", "Firebase", "Tailwind"],
+    category: "Web App",
+    isPublished: true,
+    order: 1,
+    iframeUrl: "",
+    imageUrl: "",
+  },
+  {
+    id: "p2",
+    title: "FoodieHub — Food Delivery App",
+    description:
+      "Real-time food ordering with live tracking, driver app, restaurant dashboard, and payment gateway.",
+    tags: ["React Native", "Node.js", "Socket.io", "MongoDB"],
+    category: "Mobile App",
+    isPublished: true,
+    order: 2,
+    iframeUrl: "",
+    imageUrl: "",
+  },
+  {
+    id: "p3",
+    title: "BotWorks — AI Assistant",
+    description:
+      "Custom GPT-powered chatbot with CRM integration, multi-language support, and analytics dashboard.",
+    tags: ["OpenAI", "Python", "FastAPI", "React"],
+    category: "AI/ML",
+    isPublished: true,
+    order: 3,
+    iframeUrl: "",
+    imageUrl: "",
+  },
+  {
+    id: "p4",
+    title: "PropFlow — Real Estate Portal",
+    description:
+      "Property listing platform with map integration, virtual tours, mortgage calculator, and lead management.",
+    tags: ["Next.js", "Google Maps", "PostgreSQL", "Drizzle"],
+    category: "Web App",
+    isPublished: true,
+    order: 4,
+    iframeUrl: "",
+    imageUrl: "",
+  },
+  {
+    id: "p5",
+    title: "EduLearn — LMS Platform",
+    description:
+      "Learning management system with video hosting, quiz engine, certificates, and student analytics.",
+    tags: ["React", "Node.js", "AWS S3", "Stripe"],
+    category: "SaaS",
+    isPublished: true,
+    order: 5,
+    iframeUrl: "",
+    imageUrl: "",
+  },
 ];
+
+const CATEGORY_ICONS: Record<string, string> = {
+  "Web App": "🌐",
+  "Mobile App": "📱",
+  "AI/ML": "🤖",
+  SaaS: "☁️",
+  "E-Commerce": "🛒",
+  Other: "💡",
+};
+
+const GRADIENTS = [
+  "linear-gradient(135deg, rgba(99,102,241,0.25), rgba(236,72,153,0.15))",
+  "linear-gradient(135deg, rgba(16,185,129,0.25), rgba(99,102,241,0.15))",
+  "linear-gradient(135deg, rgba(245,158,11,0.25), rgba(236,72,153,0.15))",
+  "linear-gradient(135deg, rgba(236,72,153,0.25), rgba(99,102,241,0.15))",
+  "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(16,185,129,0.15))",
+];
+
+interface ProjectCardProps {
+  project: PortfolioProject;
+  index: number;
+}
+
+function ProjectCard({ project, index }: ProjectCardProps) {
+  const [showIframe, setShowIframe] = useState(false);
+  const gradient = GRADIENTS[index % GRADIENTS.length];
+  const icon = CATEGORY_ICONS[project.category] ?? "💡";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="rounded-2xl overflow-hidden border border-white/10 dark:border-white/10 bg-white/60 dark:bg-white/5"
+    >
+      {/* Preview */}
+      {showIframe && project.iframeUrl ? (
+        <div className="relative">
+          <iframe
+            src={project.iframeUrl}
+            className="w-full h-48 border-none"
+            title={project.title}
+            sandbox="allow-scripts allow-same-origin"
+          />
+          <button
+            onClick={() => setShowIframe(false)}
+            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-sm flex items-center justify-center"
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <div
+          className="h-44 flex items-center justify-center relative cursor-pointer group"
+          style={{ background: gradient }}
+          onClick={() => project.iframeUrl && setShowIframe(true)}
+        >
+          <div className="text-6xl">{icon}</div>
+          {project.iframeUrl && (
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <div className="bg-white/20 backdrop-blur rounded-xl px-4 py-2 text-white text-sm font-semibold flex items-center gap-2">
+                <ExternalLink size={14} /> Preview
+              </div>
+            </div>
+          )}
+          {/* Category Badge */}
+          <div
+            className="absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full text-white"
+            style={{ background: "rgba(99,102,241,0.8)" }}
+          >
+            {project.category}
+          </div>
+        </div>
+      )}
+
+      {/* Info */}
+      <div className="p-4">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+          {project.title}
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+          {project.description}
+        </p>
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {project.tags.slice(0, 4).map((tag) => (
+            <span
+              key={tag}
+              className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+              style={{
+                background: "rgba(99,102,241,0.1)",
+                color: "#818cf8",
+                border: "1px solid rgba(99,102,241,0.2)",
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function PortfolioPage() {
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<PortfolioProject | null>(null);
-  const [filter, setFilter] = useState<string>("all");
+  const [activeCategory, setActiveCategory] = useState("All");
 
   useEffect(() => {
     getPortfolioProjects()
-      .then((data) => setProjects(data.length > 0 ? data : DEMO_PROJECTS))
-      .catch(() => setProjects(DEMO_PROJECTS))
+      .then((data) => {
+        setProjects(data.length > 0 ? data : DEMO_PROJECTS);
+      })
+      .catch(() => {
+        setProjects(DEMO_PROJECTS);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  const categories = ["all", ...Array.from(new Set(projects.map((p) => p.category)))];
+  const categories = [
+    "All",
+    ...Array.from(new Set(projects.map((p) => p.category))),
+  ];
   const filtered =
-    filter === "all" ? projects : projects.filter((p) => p.category === filter);
+    activeCategory === "All"
+      ? projects
+      : projects.filter((p) => p.category === activeCategory);
 
   return (
-    <AppLayout>
-      <TopHeader title="Portfolio 🎨" />
-
-      <main className="page-content animate-fade-in">
+    <AppShell requireAuth={false}>
+      <div className="px-3 pt-4">
         {/* Header */}
-        <div className="px-5 pt-5 pb-3">
-          <h2 className="section-title">
-            Our <span>Work</span>
-          </h2>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            {projects.length} projects delivered
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-5"
+        >
+          <h1 className="text-xl font-black text-slate-900 dark:text-white">
+            🖼️ Our Portfolio
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            {projects.length} projects · Showcasing our best work
           </p>
-        </div>
+        </motion.div>
 
-        {/* Category filter */}
-        <div className="px-5 flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+        {/* Category Filter */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-5 -mx-1 px-1">
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => setFilter(cat)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold capitalize transition-all duration-200 border ${
-                filter === cat
-                  ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white border-transparent shadow-[0_4px_15px_rgba(124,58,237,0.4)]"
-                  : "bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border)] hover:border-violet-500/50"
+              onClick={() => setActiveCategory(cat)}
+              className={`flex-shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                activeCategory === cat
+                  ? "text-white"
+                  : "text-slate-400 dark:text-slate-500 bg-white/5 border border-white/10"
               }`}
+              style={
+                activeCategory === cat
+                  ? { background: "linear-gradient(135deg, #6366f1, #ec4899)" }
+                  : {}
+              }
             >
-              {cat === "all" ? "All Projects" : cat}
+              {cat}
             </button>
           ))}
         </div>
 
-        {/* Grid */}
+        {/* Projects */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-5 mt-3">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="skeleton h-48 rounded-2xl" />
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-64 rounded-2xl shimmer bg-white/5" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 px-5 mt-3">
-            {filtered.map((project, i) => (
-              <button
-                key={project.id}
-                onClick={() => setSelected(project)}
-                className="text-left animate-slide-up cursor-pointer"
-                style={{ animationDelay: `${i * 0.08}s` }}
-              >
-                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl overflow-hidden hover:border-violet-500/40 hover:scale-[1.02] transition-all duration-300 hover:shadow-[0_8px_25px_rgba(124,58,237,0.2)]">
-                  {/* Thumbnail */}
-                  <div
-                    className="h-28 flex items-center justify-center relative"
-                    style={{ background: project.gradient }}
-                  >
-                    <span className="text-4xl opacity-90">{project.icon}</span>
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40" />
-                    {project.isLive && (
-                      <span className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm">
-                        Live ✓
-                      </span>
-                    )}
-                    {project.isFeatured && (
-                      <span className="absolute top-2 left-2 bg-amber-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        ⭐ Featured
-                      </span>
-                    )}
-                  </div>
-                  {/* Info */}
-                  <div className="p-3">
-                    <p className="font-bold text-[var(--text-primary)] text-sm line-clamp-1">
-                      {project.title}
-                    </p>
-                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                      {project.category}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {project.tags.slice(0, 2).map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-1.5 py-0.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[9px] font-semibold rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </button>
+          <div className="space-y-4">
+            {filtered.map((project, index) => (
+              <ProjectCard key={project.id} project={project} index={index} />
             ))}
           </div>
         )}
 
-        {/* Call to Action */}
-        <div className="mx-5 mt-5 p-5 rounded-2xl bg-gradient-to-r from-violet-600/20 to-cyan-500/20 border border-violet-500/30 text-center">
-          <p className="text-2xl mb-2">💡</p>
-          <h3 className="font-bold text-[var(--text-primary)] mb-1">
-            Have a project in mind?
-          </h3>
-          <p className="text-sm text-[var(--text-muted)] mb-4">
-            Let&apos;s turn your idea into a reality
+        {/* CTA */}
+        <GlassCard className="mt-5 p-5 text-center" gradient animate={false}>
+          <p className="text-base font-bold text-slate-900 dark:text-white mb-1">
+            Want something like this?
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+            Let&apos;s build your dream project together.
           </p>
           <a
             href="https://wa.me/923001234567"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block px-6 py-3 bg-gradient-to-r from-violet-600 to-cyan-500 text-white font-bold text-sm rounded-xl hover:shadow-[0_8px_25px_rgba(124,58,237,0.4)] transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold"
+            style={{ background: "linear-gradient(135deg, #6366f1, #ec4899)" }}
           >
-            💬 Discuss Your Project
+            🚀 Start a Project
           </a>
-        </div>
-      </main>
+        </GlassCard>
 
-      {/* Project Modal */}
-      {selected && (
-        <div
-          className="bottom-sheet-overlay open"
-          onClick={() => setSelected(null)}
-        >
-          <div
-            className="bottom-sheet"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sheet-handle" />
-
-            {/* Preview */}
-            {selected.iframeUrl ? (
-              <div className="iframe-container mb-4 h-48">
-                <iframe
-                  src={selected.iframeUrl}
-                  title={selected.title}
-                  className="w-full h-full"
-                  sandbox="allow-scripts allow-same-origin"
-                />
-              </div>
-            ) : (
-              <div
-                className="h-44 rounded-2xl flex items-center justify-center mb-4 relative overflow-hidden"
-                style={{ background: selected.gradient }}
-              >
-                <span className="text-6xl">{selected.icon}</span>
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30" />
-              </div>
-            )}
-
-            <h2 className="text-xl font-extrabold text-[var(--text-primary)] mb-1">
-              {selected.title}
-            </h2>
-            <p className="text-sm text-[var(--text-muted)] mb-3">
-              {selected.category}
-            </p>
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-4">
-              {selected.description}
-            </p>
-
-            <div className="flex flex-wrap gap-2 mb-5">
-              {selected.tags.map((tag) => (
-                <span key={tag} className="tag">
-                  {tag}
-                </span>
-              ))}
-              {selected.isLive && (
-                <span className="px-2.5 py-1 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold rounded-full">
-                  🟢 Live Project
-                </span>
-              )}
-            </div>
-
-            {selected.liveUrl && (
-              <a
-                href={selected.liveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary flex items-center justify-center gap-2 mb-3"
-              >
-                🌐 View Live Site
-              </a>
-            )}
-            <button
-              className="btn-secondary"
-              onClick={() => setSelected(null)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-    </AppLayout>
+        <div className="h-4" />
+      </div>
+    </AppShell>
   );
 }
